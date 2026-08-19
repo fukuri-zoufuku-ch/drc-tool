@@ -1,0 +1,2331 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Report Card</title>
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --surface-2: #222222;
+    --surface-3: #2a2a2a;
+    --border: #2e2e2e;
+    --border-strong: #3e3e3e;
+    --text: #e8e6e0;
+    --text-sub: #888880;
+    --text-muted: #555550;
+    --accent: #c8a96e;
+    --accent-dim: rgba(200,169,110,0.12);
+    --green: #4caf7d;
+    --green-dim: rgba(76,175,125,0.12);
+    --red: #e05555;
+    --red-dim: rgba(224,85,85,0.12);
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* ─── タブナビ ─── */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 0 24px;
+  }
+  .nav-brand {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    padding: 16px 24px 16px 0;
+    border-right: 1px solid var(--border);
+    margin-right: 8px;
+    white-space: nowrap;
+  }
+  .tab {
+    padding: 16px 20px;
+    font-size: 15px;
+    color: var(--text-sub);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ─── ページ ─── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ─── 入力ページ ─── */
+  .form-wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 36px 32px 100px;
+  }
+
+  .page-title {
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .page-sub {
+    font-size: 15px;
+    color: var(--text-sub);
+    margin-bottom: 32px;
+  }
+
+  /* ─── セクション ─── */
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .section-icon {
+    font-size: 16px;
+    width: 32px;
+    height: 32px;
+    background: var(--surface-3);
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .section-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .section-sub {
+    font-size: 14px;
+    color: var(--text-sub);
+    margin-top: 2px;
+  }
+
+  /* ─── フォーム部品 ─── */
+  .field { margin-bottom: 16px; }
+  .field:last-child { margin-bottom: 0; }
+
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-sub);
+    margin-bottom: 8px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  input[type="text"],
+  input[type="date"],
+  input[type="number"],
+  select,
+  textarea {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 16px;
+    padding: 12px 14px;
+    transition: border-color 0.15s;
+    outline: none;
+    appearance: none;
+  }
+  input[type="text"]:focus,
+  input[type="date"]:focus,
+  input[type="number"]:focus,
+  select:focus,
+  textarea:focus {
+    border-color: var(--accent);
+  }
+  textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+  select { cursor: pointer; }
+
+  /* グリッド */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+  /* ─── 評価ボタン ─── */
+  .grade-group {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .grade-btn {
+    width: 54px;
+    height: 54px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-sub);
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .grade-btn:hover { border-color: var(--border-strong); color: var(--text); }
+  .grade-btn.selected-A { background: rgba(76,175,125,0.2); border-color: #4caf7d; color: #4caf7d; }
+  .grade-btn.selected-B { background: rgba(100,180,140,0.15); border-color: #5bbf8a; color: #5bbf8a; }
+  .grade-btn.selected-C { background: rgba(200,169,110,0.2); border-color: var(--accent); color: var(--accent); }
+  .grade-btn.selected-D { background: rgba(220,130,80,0.2); border-color: #dc8250; color: #dc8250; }
+  .grade-btn.selected-E { background: rgba(224,85,85,0.15); border-color: var(--red); color: var(--red); }
+  .grade-btn.selected-F { background: rgba(180,50,50,0.2); border-color: #b43232; color: #b43232; }
+
+  /* ─── スライダー ─── */
+  .slider-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  input[type="range"] {
+    flex: 1;
+    height: 4px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .slider-val {
+    min-width: 32px;
+    text-align: right;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  /* ─── FOMOチェック ─── */
+  .fomo-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+  .fomo-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: border-color 0.15s;
+    user-select: none;
+  }
+  .fomo-item:hover { border-color: var(--border-strong); }
+  .fomo-item.checked { border-color: var(--accent); background: var(--accent-dim); }
+  .fomo-item input[type="checkbox"] { display: none; }
+  .fomo-check {
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .fomo-item.checked .fomo-check {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .fomo-item.checked .fomo-check::after {
+    content: '';
+    width: 10px;
+    height: 6px;
+    border-left: 2px solid #000;
+    border-bottom: 2px solid #000;
+    transform: rotate(-45deg) translateY(-1px);
+    display: block;
+  }
+  .fomo-label { font-size: 16px; color: var(--text); line-height: 1.6; }
+
+  /* ─── トレード記録 ─── */
+  .trade-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    background: var(--surface-2);
+    border-radius: var(--radius);
+    padding: 4px;
+  }
+  .trade-tab {
+    padding: 8px 18px;
+    border-radius: 6px;
+    font-size: 15px;
+    color: var(--text-sub);
+    cursor: pointer;
+    transition: all 0.15s;
+    border: none;
+    background: none;
+  }
+  .trade-tab:hover { color: var(--text); }
+  .trade-tab.active { background: var(--surface-3); color: var(--text); }
+  .trade-panel { display: none; }
+  .trade-panel.active { display: block; }
+
+  .pnl-field {
+    position: relative;
+  }
+  .pnl-field input { padding-left: 32px; }
+  .pnl-prefix {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-sub);
+    font-size: 14px;
+    pointer-events: none;
+  }
+
+  /* 画像アップロード */
+  .img-upload-area {
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    background: var(--surface-2);
+  }
+  .img-upload-area:hover { border-color: var(--accent); background: var(--accent-dim); }
+  .img-upload-area input { display: none; }
+  .img-upload-text { font-size: 13px; color: var(--text-sub); }
+  .img-upload-text span { color: var(--accent); }
+  .img-previews {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .img-preview-item {
+    position: relative;
+    width: 100%;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    background: #000;
+  }
+  .img-preview-item:hover .img-overlay {
+    opacity: 1;
+  }
+  .img-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 8px 12px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.7));
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    opacity: 0;
+    transition: opacity 0.15s;
+    font-size: 13px;
+    color: #fff;
+  }
+  .img-preview-item img { width: 100%; height: auto; display: block; object-fit: contain; max-height: 600px; }
+  .img-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: #fff;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 2px 8px;
+    line-height: 1.4;
+  }
+  .img-remove:hover { background: rgba(224,85,85,0.7); }
+
+  /* ─── タグ ─── */
+  .tag-groups { display: flex; flex-direction: column; gap: 14px; }
+  .tag-group-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+  .tag-list { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tag-chip {
+    padding: 7px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-sub);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .tag-chip:hover { border-color: var(--border-strong); color: var(--text); }
+  .tag-chip.selected { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+  .tag-custom-wrap {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .tag-custom-wrap input { flex: 1; }
+  .tag-add-btn {
+    padding: 0 16px;
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-sub);
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .tag-add-btn:hover { color: var(--text); border-color: var(--border-strong); }
+
+  /* ─── 送信ボタン ─── */
+  .submit-wrap {
+    position: sticky;
+    bottom: 0;
+    background: linear-gradient(transparent, var(--bg) 40%);
+    padding: 20px 0 24px;
+    margin-top: 24px;
+  }
+  .btn-submit {
+    width: 100%;
+    padding: 16px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+    font-family: inherit;
+  }
+  .btn-submit:hover { opacity: 0.9; }
+  .btn-submit:active { transform: scale(0.99); }
+  .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ─── 保存ステータス ─── */
+  .save-status {
+    text-align: center;
+    font-size: 15px;
+    margin-top: 10px;
+    min-height: 22px;
+    transition: opacity 0.3s;
+  }
+  .save-status.success { color: var(--green); }
+  .save-status.error { color: var(--red); }
+  .save-status.loading { color: var(--text-sub); }
+
+  /* ─── 時間帯テーブル ─── */
+  .time-grid {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 12px;
+  }
+  .time-label {
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-sub);
+    padding-top: 2px;
+  }
+
+  /* ─── Coming soon タブ ─── */
+  .coming-soon {
+    max-width: 760px;
+    margin: 80px auto;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+    padding: 24px;
+  }
+  .coming-soon h2 { font-size: 18px; color: var(--text-sub); margin-bottom: 8px; }
+
+  /* スクロールバー */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+
+  /* 区切り */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  /* ─── 設定タブ ─── */
+  .settings-wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 36px 32px 100px;
+  }
+  .settings-category {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px 24px;
+    margin-bottom: 14px;
+  }
+  .settings-category-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .settings-category-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .settings-category-name input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 600;
+    padding: 2px 6px;
+    width: 160px;
+    outline: none;
+  }
+  .settings-category-name input:focus { border-bottom-color: var(--accent); }
+  .btn-del-cat {
+    padding: 4px 12px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-del-cat:hover { border-color: var(--red); color: var(--red); }
+  .settings-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .settings-tag {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .settings-tag-del {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: none;
+    background: var(--surface-3);
+    color: var(--text-muted);
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .settings-tag-del:hover { background: var(--red); color: #fff; }
+  .settings-add-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .settings-add-row input {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  .btn-add-tag {
+    padding: 8px 16px;
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-sub);
+    font-size: 14px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .btn-add-tag:hover { color: var(--accent); border-color: var(--accent); }
+  .btn-add-category {
+    width: 100%;
+    padding: 14px;
+    background: transparent;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-lg);
+    color: var(--text-sub);
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: 24px;
+  }
+  .btn-add-category:hover { border-color: var(--accent); color: var(--accent); }
+  .settings-note {
+    font-size: 13px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 8px;
+  }
+
+  /* ─── 説明タブ ─── */
+  .guide-wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 36px 32px 100px;
+  }
+  .guide-step {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 22px 24px;
+  }
+  .guide-step-num {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #000;
+    font-size: 16px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .guide-step-body { flex: 1; }
+  .guide-step-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .guide-step-desc {
+    font-size: 14px;
+    color: var(--text-sub);
+    line-height: 1.8;
+  }
+  .guide-code {
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    margin: 10px 0;
+    word-break: break-all;
+    line-height: 1.7;
+  }
+  .guide-note {
+    background: var(--accent-dim);
+    border: 1px solid rgba(200,169,110,0.25);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text-sub);
+    margin-top: 10px;
+    line-height: 1.7;
+  }
+  .guide-section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 32px 0 12px;
+  }
+  .guide-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-right: 6px;
+  }
+  .badge-required { background: rgba(224,85,85,0.15); color: var(--red); border: 1px solid rgba(224,85,85,0.3); }
+  .badge-optional { background: rgba(200,169,110,0.12); color: var(--accent); border: 1px solid rgba(200,169,110,0.25); }
+
+  /* ─── 連携設定タブ ─── */
+  .connect-wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 36px 32px 100px;
+  }
+  .connect-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px 28px 24px;
+    margin-bottom: 16px;
+  }
+  .connect-card-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .connect-card-desc {
+    font-size: 14px;
+    color: var(--text-sub);
+    margin-bottom: 20px;
+    line-height: 1.7;
+  }
+  .connect-input-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .connect-input-row input {
+    flex: 1;
+    font-size: 14px;
+    padding: 11px 14px;
+    font-family: 'Courier New', monospace;
+  }
+  .btn-connect {
+    padding: 11px 20px;
+    background: var(--surface-3);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    color: var(--text-sub);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .btn-connect:hover { color: var(--text); border-color: var(--accent); }
+  .btn-connect.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+    font-weight: 600;
+  }
+  .btn-connect.primary:hover { opacity: 0.88; }
+  .btn-connect:disabled { opacity: 0.4; cursor: not-allowed; }
+  .connect-result {
+    min-height: 24px;
+    font-size: 14px;
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    display: none;
+    line-height: 1.6;
+  }
+  .connect-result.success {
+    display: block;
+    background: var(--green-dim);
+    border: 1px solid rgba(76,175,125,0.3);
+    color: var(--green);
+  }
+  .connect-result.error {
+    display: block;
+    background: var(--red-dim);
+    border: 1px solid rgba(224,85,85,0.3);
+    color: var(--red);
+  }
+  .connect-result.loading {
+    display: block;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-sub);
+  }
+  .connect-saved-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--text-sub);
+  }
+  .connect-saved-val {
+    font-family: 'Courier New', monospace;
+    color: var(--text);
+    font-size: 13px;
+    word-break: break-all;
+  }
+  .btn-clear {
+    padding: 3px 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    margin-left: 12px;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .btn-clear:hover { border-color: var(--red); color: var(--red); }
+  .connect-step-badge {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #000;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .connect-status-summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 4px;
+  }
+  .connect-status-item {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .connect-status-item .gas-dot { width: 10px; height: 10px; flex-shrink: 0; }
+  .connect-status-label { font-size: 13px; color: var(--text-sub); }
+  .connect-status-val { font-size: 14px; color: var(--text); font-weight: 500; margin-top: 2px; }
+
+  /* ─── GAS接続ステータスバー ─── */
+  .gas-status-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 8px 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--text-muted);
+    z-index: 50;
+  }
+  .gas-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    flex-shrink: 0;
+  }
+  .gas-dot.connected { background: var(--green); box-shadow: 0 0 6px rgba(76,175,125,0.5); }
+  .gas-dot.error { background: var(--red); }
+
+</style>
+</head>
+<body>
+
+<!-- ナビ -->
+<nav class="nav">
+  <div class="nav-brand">DRC</div>
+  <button class="tab active" onclick="switchTab('input',this)">入力</button>
+  <button class="tab" onclick="switchTab('search',this)">検索</button>
+  <button class="tab" onclick="switchTab('monthly',this)">月次</button>
+  <button class="tab" onclick="switchTab('yearly',this)">年間</button>
+  <button class="tab" onclick="switchTab('tags',this)">タグ別</button>
+  <button class="tab" onclick="switchTab('settings',this)">設定</button>
+  <button class="tab" onclick="switchTab('connect',this)">連携設定</button>
+  <button class="tab" onclick="switchTab('guide',this)">使い方</button>
+</nav>
+
+<!-- GAS接続ステータスバー -->
+<div class="gas-status-bar" id="gas-status-bar">
+  <div class="gas-dot" id="gas-dot"></div>
+  <span id="gas-status-text">GAS未設定（デモモード）</span>
+</div>
+
+<!-- ── 入力タブ ── -->
+<div id="page-input" class="page active">
+<div class="form-wrap">
+
+  <div class="page-title">Daily Report Card</div>
+  <div id="form-date-display" class="page-sub"></div>
+
+  <!-- 1. ヘッダー -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">📋</div>
+      <div>
+        <div class="section-title">基本情報</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="field">
+        <label>日付</label>
+        <input type="date" id="date" />
+      </div>
+      <div class="field">
+        <label>P&amp;L（円）</label>
+        <div class="pnl-field">
+          <span class="pnl-prefix">¥</span>
+          <input type="number" id="pnl" placeholder="例: -200000 or 50000" />
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>総合評価</label>
+      <div class="grade-group" id="grade-overall">
+        <button class="grade-btn" data-grade="A" onclick="selectGrade('overall','A')">A</button>
+        <button class="grade-btn" data-grade="B" onclick="selectGrade('overall','B')">B</button>
+        <button class="grade-btn" data-grade="C" onclick="selectGrade('overall','C')">C</button>
+        <button class="grade-btn" data-grade="D" onclick="selectGrade('overall','D')">D</button>
+        <button class="grade-btn" data-grade="E" onclick="selectGrade('overall','E')">E</button>
+        <button class="grade-btn" data-grade="F" onclick="selectGrade('overall','F')">F</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. コンディション -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🧠</div>
+      <div>
+        <div class="section-title">コンディション</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>朝の気分</label>
+      <div class="slider-wrap">
+        <span style="font-size:12px;color:var(--text-muted);">1</span>
+        <input type="range" id="mood" min="1" max="10" value="5"
+          oninput="document.getElementById('mood-val').textContent=this.value" />
+        <span style="font-size:12px;color:var(--text-muted);">10</span>
+        <span class="slider-val" id="mood-val">5</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>睡眠の質</label>
+      <div class="slider-wrap">
+        <span style="font-size:12px;color:var(--text-muted);">1</span>
+        <input type="range" id="sleep" min="1" max="10" value="5"
+          oninput="document.getElementById('sleep-val').textContent=this.value" />
+        <span style="font-size:12px;color:var(--text-muted);">10</span>
+        <span class="slider-val" id="sleep-val">5</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>一言メモ（体調・気になることなど）</label>
+      <input type="text" id="condition-note" placeholder="例：少し疲れ気味、集中力に不安あり" />
+    </div>
+  </div>
+
+  <!-- 3. FOMOチェック -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🔍</div>
+      <div>
+        <div class="section-title">FOMO意識チェック</div>
+        <div class="section-sub">トレード前の心理状態を確認する</div>
+      </div>
+    </div>
+
+    <div class="fomo-list">
+      <div class="fomo-item" onclick="toggleFomo(this)" data-value="anxiety">
+        <div class="fomo-check"></div>
+        <span class="fomo-label">心配や不安はあるか</span>
+      </div>
+      <div class="fomo-item" onclick="toggleFomo(this)" data-value="sns">
+        <div class="fomo-check"></div>
+        <span class="fomo-label">SNSで他人の成績が気になるか</span>
+      </div>
+      <div class="fomo-item" onclick="toggleFomo(this)" data-value="regret">
+        <div class="fomo-check"></div>
+        <span class="fomo-label">手放した銘柄の動きが気になるか（後悔はないか）</span>
+      </div>
+      <div class="fomo-item" onclick="toggleFomo(this)" data-value="urge">
+        <div class="fomo-check"></div>
+        <span class="fomo-label">今すぐにでもトレードしなきゃと駆られる点はあるか</span>
+      </div>
+      <div class="fomo-item" onclick="toggleFomo(this)" data-value="breath">
+        <div class="fomo-check"></div>
+        <span class="fomo-label">モニターから離れて4回深呼吸ができるか</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>現在どのように感じているか・なぜそう感じているか（3〜5分かけて記述）</label>
+      <textarea id="fomo-note" rows="5" placeholder="今この瞬間の感情・状態を書き出す..."></textarea>
+    </div>
+  </div>
+
+  <!-- 4. プロセス目標 -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🎯</div>
+      <div>
+        <div class="section-title">本日のプロセス目標</div>
+        <div class="section-sub">行動にフォーカス。P&L目標はNG</div>
+      </div>
+    </div>
+    <div class="field">
+      <textarea id="goal" rows="3" placeholder="例：A+セットアップのみを取る　／　最大3トレードまで　／　損切りラインを事前に決める"></textarea>
+    </div>
+  </div>
+
+  <!-- 5. 時間帯別評価 -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">⏰</div>
+      <div>
+        <div class="section-title">時間帯別評価</div>
+      </div>
+    </div>
+
+    <!-- 前場 -->
+    <div style="margin-bottom:24px;">
+      <div style="font-size:13px;font-weight:600;color:var(--text-sub);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border);">前場　9:00〜11:30</div>
+
+      <div class="field">
+        <label>評価</label>
+        <div class="grade-group" id="grade-am">
+          <button class="grade-btn" onclick="selectGrade('am','A')">A</button>
+          <button class="grade-btn" onclick="selectGrade('am','B')">B</button>
+          <button class="grade-btn" onclick="selectGrade('am','C')">C</button>
+          <button class="grade-btn" onclick="selectGrade('am','D')">D</button>
+          <button class="grade-btn" onclick="selectGrade('am','E')">E</button>
+          <button class="grade-btn" onclick="selectGrade('am','F')">F</button>
+          <button class="grade-btn" onclick="selectGrade('am','N/A')" style="width:auto;padding:0 12px;font-size:12px;">N/A</button>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div class="field">
+          <label>セットアップ</label>
+          <select id="am-setup">
+            <option value="">選択</option>
+            <option value="あり">あり</option>
+            <option value="なし">なし</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>プレイブック / 裁量</label>
+          <select id="am-playbook">
+            <option value="">選択</option>
+            <option value="プレイブック通り">プレイブック通り</option>
+            <option value="裁量">裁量</option>
+            <option value="混合">混合</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>サイズ感</label>
+          <input type="text" id="am-size" placeholder="例: 通常 / 小さめ" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>コメント（ルール遵守・感情・判断など）</label>
+        <textarea id="am-comment" rows="3" placeholder="前場の振り返り..."></textarea>
+      </div>
+    </div>
+
+    <!-- 後場 -->
+    <div>
+      <div style="font-size:13px;font-weight:600;color:var(--text-sub);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border);">後場　12:30〜15:30</div>
+
+      <div class="field">
+        <label>評価</label>
+        <div class="grade-group" id="grade-pm">
+          <button class="grade-btn" onclick="selectGrade('pm','A')">A</button>
+          <button class="grade-btn" onclick="selectGrade('pm','B')">B</button>
+          <button class="grade-btn" onclick="selectGrade('pm','C')">C</button>
+          <button class="grade-btn" onclick="selectGrade('pm','D')">D</button>
+          <button class="grade-btn" onclick="selectGrade('pm','E')">E</button>
+          <button class="grade-btn" onclick="selectGrade('pm','F')">F</button>
+          <button class="grade-btn" onclick="selectGrade('pm','N/A')" style="width:auto;padding:0 12px;font-size:12px;">N/A</button>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div class="field">
+          <label>セットアップ</label>
+          <select id="pm-setup">
+            <option value="">選択</option>
+            <option value="あり">あり</option>
+            <option value="なし">なし</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>プレイブック / 裁量</label>
+          <select id="pm-playbook">
+            <option value="">選択</option>
+            <option value="プレイブック通り">プレイブック通り</option>
+            <option value="裁量">裁量</option>
+            <option value="混合">混合</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>サイズ感</label>
+          <input type="text" id="pm-size" placeholder="例: 通常 / 小さめ" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>コメント</label>
+        <textarea id="pm-comment" rows="3" placeholder="後場の振り返り..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. トレード記録 -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">📊</div>
+      <div>
+        <div class="section-title">トレード記録</div>
+        <div class="section-sub">最大5件まで記録できます</div>
+      </div>
+    </div>
+
+    <div class="trade-tabs">
+      <button class="trade-tab active" onclick="switchTrade(0)">①</button>
+      <button class="trade-tab" onclick="switchTrade(1)">②</button>
+      <button class="trade-tab" onclick="switchTrade(2)">③</button>
+      <button class="trade-tab" onclick="switchTrade(3)">④</button>
+      <button class="trade-tab" onclick="switchTrade(4)">⑤</button>
+    </div>
+
+    <!-- トレード①〜⑤ -->
+    <div id="trade-panels">
+    </div>
+  </div>
+
+  <!-- 7. タグ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🏷</div>
+      <div>
+        <div class="section-title">タグ</div>
+        <div class="section-sub">複数選択可・自由タグも追加できます</div>
+      </div>
+    </div>
+
+    <div class="tag-groups">
+      <div>
+        <div class="tag-group-label">感情系</div>
+        <div class="tag-list" id="tags-emotion">
+          <span class="tag-chip" onclick="toggleTag(this)">リベンジトレード</span>
+          <span class="tag-chip" onclick="toggleTag(this)">FOMO発動</span>
+          <span class="tag-chip" onclick="toggleTag(this)">冷静</span>
+          <span class="tag-chip" onclick="toggleTag(this)">焦り</span>
+          <span class="tag-chip" onclick="toggleTag(this)">自信過剰</span>
+        </div>
+      </div>
+      <div>
+        <div class="tag-group-label">行動系</div>
+        <div class="tag-list" id="tags-action">
+          <span class="tag-chip" onclick="toggleTag(this)">ルール遵守</span>
+          <span class="tag-chip" onclick="toggleTag(this)">ルール違反</span>
+          <span class="tag-chip" onclick="toggleTag(this)">損切り遅延</span>
+          <span class="tag-chip" onclick="toggleTag(this)">オーバーサイズ</span>
+          <span class="tag-chip" onclick="toggleTag(this)">早切り</span>
+        </div>
+      </div>
+      <div>
+        <div class="tag-group-label">セットアップ系</div>
+        <div class="tag-list" id="tags-setup">
+          <span class="tag-chip" onclick="toggleTag(this)">A+セットアップ</span>
+          <span class="tag-chip" onclick="toggleTag(this)">プレイブック通り</span>
+          <span class="tag-chip" onclick="toggleTag(this)">裁量</span>
+          <span class="tag-chip" onclick="toggleTag(this)">セットアップなし</span>
+        </div>
+      </div>
+      <div>
+        <div class="tag-group-label">相場環境系</div>
+        <div class="tag-list" id="tags-market">
+          <span class="tag-chip" onclick="toggleTag(this)">トレンド相場</span>
+          <span class="tag-chip" onclick="toggleTag(this)">レンジ相場</span>
+          <span class="tag-chip" onclick="toggleTag(this)">薄商い</span>
+          <span class="tag-chip" onclick="toggleTag(this)">イベント相場</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tag-custom-wrap">
+      <input type="text" id="custom-tag-input" placeholder="カスタムタグを追加..." onkeydown="if(event.key==='Enter'){addCustomTag()}" />
+      <button class="tag-add-btn" onclick="addCustomTag()">追加</button>
+    </div>
+    <div class="tag-list" id="tags-custom" style="margin-top:10px;"></div>
+  </div>
+
+  <!-- 8. プレイバックと気づき -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🔍</div>
+      <div>
+        <div class="section-title">プレイバックと気づき</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>気づき</label>
+      <textarea id="insight" rows="3" placeholder="今日気づいたこと..."></textarea>
+    </div>
+    <div class="field">
+      <label>良かった点（再現性あり）</label>
+      <textarea id="good" rows="3" placeholder="うまくいったこと..."></textarea>
+    </div>
+    <div class="field">
+      <label>悪かった点（改善余地）</label>
+      <textarea id="bad" rows="3" placeholder="反省点・改善すべきこと..."></textarea>
+    </div>
+    <div class="field">
+      <label>感情の動きと対処法</label>
+      <textarea id="emotion" rows="3" placeholder="感情の変化とどう対処したか..."></textarea>
+    </div>
+    <div class="field">
+      <label>今日から対応やり始めること</label>
+      <textarea id="action" rows="2" placeholder="明日から実践すること..."></textarea>
+    </div>
+  </div>
+
+  <!-- 9. マントラ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🧘</div>
+      <div>
+        <div class="section-title">マントラ・明日への一言</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>今日の自分にかけたい言葉</label>
+      <textarea id="mantra-today" rows="2" placeholder="今日の自分へ..."></textarea>
+    </div>
+    <div class="field">
+      <label>明日の自分に伝えたいこと</label>
+      <textarea id="mantra-tomorrow" rows="2" placeholder="明日の自分へ..."></textarea>
+    </div>
+  </div>
+
+  <!-- 送信 -->
+  <div class="submit-wrap">
+    <button class="btn-submit" id="btn-submit" onclick="submitDRC()">記録を保存する</button>
+    <div class="save-status" id="save-status"></div>
+  </div>
+
+</div>
+</div>
+
+<!-- ── 検索タブ（後で実装） ── -->
+<div id="page-search" class="page">
+  <div class="coming-soon">
+    <h2>検索・閲覧</h2>
+    <p>次のステップで実装します</p>
+  </div>
+</div>
+
+<!-- ── 月次タブ ── -->
+<div id="page-monthly" class="page">
+  <div class="coming-soon">
+    <h2>月次サマリー</h2>
+    <p>次のステップで実装します</p>
+  </div>
+</div>
+
+<!-- ── 年間タブ ── -->
+<div id="page-yearly" class="page">
+  <div class="coming-soon">
+    <h2>年間サマリー</h2>
+    <p>次のステップで実装します</p>
+  </div>
+</div>
+
+<!-- ── タグ別タブ ── -->
+<div id="page-tags" class="page">
+  <div class="coming-soon">
+    <h2>タグ別分析</h2>
+    <p>次のステップで実装します</p>
+  </div>
+</div>
+
+<!-- ── 設定タブ ── -->
+<div id="page-settings" class="page">
+<div class="settings-wrap">
+  <div class="page-title">設定</div>
+  <div class="page-sub" style="margin-bottom:28px;">タグのカテゴリ・項目を自由に編集できます</div>
+
+  <div id="settings-tag-categories"></div>
+
+  <button class="btn-add-category" onclick="addTagCategory()">＋ カテゴリを追加</button>
+  <div class="settings-note">変更は自動で保存されます</div>
+</div>
+</div>
+
+<!-- ── 連携設定タブ ── -->
+<div id="page-connect" class="page">
+<div class="connect-wrap">
+
+  <div class="page-title">連携設定</div>
+  <div class="page-sub" style="margin-bottom:28px;">Google Apps ScriptとGoogle Driveの接続を設定します</div>
+
+  <!-- 接続状態サマリー -->
+  <div class="connect-status-summary" style="margin-bottom:28px;">
+    <div class="connect-status-item">
+      <div class="gas-dot" id="dot-gas"></div>
+      <div>
+        <div class="connect-status-label">Google Apps Script</div>
+        <div class="connect-status-val" id="status-gas-val">未設定</div>
+      </div>
+    </div>
+    <div class="connect-status-item">
+      <div class="gas-dot" id="dot-drive"></div>
+      <div>
+        <div class="connect-status-label">Google Drive フォルダ</div>
+        <div class="connect-status-val" id="status-drive-val">未設定</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 1: GAS URL -->
+  <div class="connect-card">
+    <div class="connect-card-title">
+      <div class="connect-step-badge">1</div>
+      Google Apps Script の接続
+    </div>
+    <div class="connect-card-desc">
+      GASをウェブアプリとしてデプロイして発行されたURLを入力し、接続テストを行います。<br>
+      デプロイ方法は「使い方」タブを参照してください。
+    </div>
+    <div class="connect-input-row">
+      <input type="text" id="input-gas-url" placeholder="https://script.google.com/macros/s/..." />
+      <button class="btn-connect" onclick="testGasConnection()">接続テスト</button>
+    </div>
+    <div class="connect-result" id="result-gas"></div>
+    <div style="margin-top:12px;display:flex;justify-content:flex-end;">
+      <button class="btn-connect primary" id="btn-save-gas" onclick="saveGasUrl()" disabled>この設定を保存する</button>
+    </div>
+    <!-- 保存済み表示 -->
+    <div id="saved-gas-wrap" style="display:none;">
+      <div style="font-size:12px;color:var(--text-muted);margin-top:16px;margin-bottom:6px;">現在の設定</div>
+      <div class="connect-saved-row">
+        <span class="connect-saved-val" id="saved-gas-val"></span>
+        <button class="btn-clear" onclick="clearGasUrl()">解除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: Drive フォルダID -->
+  <div class="connect-card">
+    <div class="connect-card-title">
+      <div class="connect-step-badge">2</div>
+      Google Drive フォルダの設定
+    </div>
+    <div class="connect-card-desc">
+      チャート画像の保存先フォルダIDを入力します。フォルダのURLから確認できます。<br>
+      <span style="font-family:monospace;font-size:13px;color:var(--text-muted);">https://drive.google.com/drive/folders/<span style="color:var(--accent);">★フォルダID★</span></span>
+    </div>
+    <div class="connect-input-row">
+      <input type="text" id="input-folder-id" placeholder="フォルダIDを入力..." />
+      <button class="btn-connect" onclick="testFolderConnection()">フォルダ確認</button>
+    </div>
+    <div class="connect-result" id="result-folder"></div>
+    <div style="margin-top:12px;display:flex;justify-content:flex-end;">
+      <button class="btn-connect primary" id="btn-save-folder" onclick="saveFolderId()" disabled>この設定を保存する</button>
+    </div>
+    <!-- 保存済み表示 -->
+    <div id="saved-folder-wrap" style="display:none;">
+      <div style="font-size:12px;color:var(--text-muted);margin-top:16px;margin-bottom:6px;">現在の設定</div>
+      <div class="connect-saved-row">
+        <span class="connect-saved-val" id="saved-folder-val"></span>
+        <button class="btn-clear" onclick="clearFolderId()">解除</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ── 説明タブ ── -->
+<div id="page-guide" class="page">
+<div class="guide-wrap">
+
+  <div class="page-title">使い方・セットアップ</div>
+  <div class="page-sub" style="margin-bottom:32px;">このツールをGoogleスプレッドシートと連携するための設定手順です</div>
+
+  <div class="guide-section-title">🚀 初期セットアップ</div>
+
+  <div class="guide-step">
+    <div class="guide-step-num">1</div>
+    <div class="guide-step-body">
+      <div class="guide-step-title">Googleスプレッドシートを作成する</div>
+      <div class="guide-step-desc">
+        <a href="https://sheets.google.com" target="_blank" style="color:var(--accent);">Google スプレッドシート</a> を開き、新しいスプレッドシートを作成します。<br>
+        URLに含まれるスプレッドシートIDをメモしておきます。<br>
+        <div class="guide-code">https://docs.google.com/spreadsheets/d/<span style="color:#fff;background:rgba(200,169,110,0.3);padding:1px 4px;border-radius:3px;">★ここがスプレッドシートID★</span>/edit</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="guide-step">
+    <div class="guide-step-num">2</div>
+    <div class="guide-step-body">
+      <div class="guide-step-title">Googleドライブにチャート画像保存用フォルダを作成する</div>
+      <div class="guide-step-desc">
+        <a href="https://drive.google.com" target="_blank" style="color:var(--accent);">Google ドライブ</a> でフォルダを作成（例：「DRC_Charts」）。<br>
+        フォルダを開いたときのURLからフォルダIDをメモします。<br>
+        <div class="guide-code">https://drive.google.com/drive/folders/<span style="color:#fff;background:rgba(200,169,110,0.3);padding:1px 4px;border-radius:3px;">★ここがフォルダID★</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="guide-step">
+    <div class="guide-step-num">3</div>
+    <div class="guide-step-body">
+      <div class="guide-step-title">Google Apps Script にコードを貼り付ける</div>
+      <div class="guide-step-desc">
+        <a href="https://script.google.com" target="_blank" style="color:var(--accent);">script.google.com</a> を開き、「新しいプロジェクト」を作成。<br>
+        <code style="color:var(--accent);">コード.gs</code> の内容をすべて削除し、配布の <code style="color:var(--accent);">gas.js</code> の内容を貼り付けます。<br><br>
+        ファイル冒頭の2行を自分の環境に書き換えます：
+        <div class="guide-code">const SPREADSHEET_ID  = '★スプレッドシートID★';<br>const DRIVE_FOLDER_ID = '★フォルダID★';</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="guide-step">
+    <div class="guide-step-num">4</div>
+    <div class="guide-step-body">
+      <div class="guide-step-title">GASをウェブアプリとしてデプロイする</div>
+      <div class="guide-step-desc">
+        GASエディタの右上「デプロイ」→「新しいデプロイ」をクリック。<br>
+        歯車アイコンから「ウェブアプリ」を選択し、以下のように設定します：
+        <div class="guide-code">実行ユーザー：自分<br>アクセスできるユーザー：全員</div>
+        「デプロイ」ボタンを押し、Googleアカウントの承認を完了させます。<br>
+        表示される <strong style="color:var(--accent);">ウェブアプリのURL</strong> をコピーします。
+        <div class="guide-note">⚠️ 「アクセスできるユーザー：全員」はURLを知っている人が誰でもアクセスできるという意味です。URLを他人に教えなければ実質的には安全ですが、気になる場合はGoogleアカウントでのログイン認証を追加する実装も可能です。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="guide-step">
+    <div class="guide-step-num">5</div>
+    <div class="guide-step-body">
+      <div class="guide-step-title">「連携設定」タブでGAS URLを登録する</div>
+      <div class="guide-step-desc">
+        このHTMLファイルをブラウザで開き、上部ナビの <strong style="color:var(--accent);">「連携設定」タブ</strong> を開きます。<br><br>
+        <strong>Step 1</strong>：デプロイで発行されたウェブアプリURLを入力欄に貼り付け、「接続テスト」をクリック。<br>
+        スプレッドシート名が表示されれば接続成功です。「この設定を保存する」を押します。<br><br>
+        <strong>Step 2</strong>：GoogleドライブのフォルダIDを入力し、「フォルダ確認」→「この設定を保存する」を押します。<br><br>
+        設定はブラウザに保存されるため、<strong>HTMLファイルの書き換えは一切不要</strong>です。<br>
+        画面下部のステータスバーが <span style="color:var(--green);">● GAS接続済み</span> に変われば完了です。
+        <div class="guide-note">💡 設定は各ブラウザ・PCごとに1回行う必要があります。複数のPCで使用する場合は、それぞれのブラウザで同じ手順を繰り返してください。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="guide-section-title">📁 作成されるスプレッドシート構成</div>
+
+  <div class="guide-step" style="flex-direction:column;gap:12px;">
+    <div style="display:flex;gap:12px;align-items:flex-start;">
+      <div style="font-size:20px;">📊</div>
+      <div>
+        <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px;">DRC シート</div>
+        <div class="guide-step-desc">日々のトレード記録が1行ずつ保存されます。日付が同じ場合は上書きされます。</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:flex-start;">
+      <div style="font-size:20px;">🏷</div>
+      <div>
+        <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px;">TAG_MASTER シート</div>
+        <div class="guide-step-desc">タグの設定が保存されます。「設定」タブで変更するたびに自動で同期されます。</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:flex-start;">
+      <div style="font-size:20px;">🖼</div>
+      <div>
+        <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px;">Googleドライブ / 年月 / 日付 /</div>
+        <div class="guide-step-desc">チャート画像が日付フォルダに整理して保存されます（例：DRC_Charts/2026-08/2026-08-14/）。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="guide-section-title">❓ よくある質問</div>
+
+  <div class="guide-step" style="flex-direction:column;gap:8px;">
+    <div>
+      <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px;">GAS URLを変えたら再設定が必要ですか？</div>
+      <div class="guide-step-desc">GASを再デプロイすると新しいURLが発行されます。その場合は「連携設定」タブを開き、新しいURLで接続テスト→保存し直すだけで完了です。HTMLファイルの書き換えは不要です。なお「デプロイを管理」→「既存のデプロイを編集」を使えばURLは変わりません。</div>
+    </div>
+    <hr style="border-color:var(--border);margin:8px 0;">
+    <div>
+      <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px;">画像のアップロードに失敗する場合は？</div>
+      <div class="guide-step-desc">GASのデプロイ設定で「アクセスできるユーザー：全員」になっているか確認してください。また、画像1枚あたり10MB以上の場合はGASの制限で失敗することがあります。</div>
+    </div>
+    <hr style="border-color:var(--border);margin:8px 0;">
+    <div>
+      <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px;">過去のNotionデータを移行できますか？</div>
+      <div class="guide-step-desc">NotionからCSVエクスポートし、スプレッドシートのDRCシートに列を合わせて貼り付けることで移行できます。列の順番はDRCシートのヘッダー行を参照してください。</div>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:40px;font-size:13px;color:var(--text-muted);">
+    ソースコード・最新版：<a href="https://github.com/" target="_blank" style="color:var(--accent);">GitHub（準備中）</a>
+  </div>
+
+</div>
+</div>
+
+<script>
+// ── GAS設定（localStorageから読み込み） ──
+function getGasUrl()    { return localStorage.getItem('drc_gas_url')    || ''; }
+function getFolderId()  { return localStorage.getItem('drc_folder_id')  || ''; }
+
+// ── タグマスター（デフォルト） ──
+const DEFAULT_TAG_MASTER = [
+  { id: 'emotion', name: '感情系', tags: ['リベンジトレード','FOMO発動','冷静','焦り','自信過剰'] },
+  { id: 'action',  name: '行動系', tags: ['ルール遵守','ルール違反','損切り遅延','オーバーサイズ','早切り'] },
+  { id: 'setup',   name: 'セットアップ系', tags: ['A+セットアップ','プレイブック通り','裁量','セットアップなし'] },
+  { id: 'market',  name: '相場環境系', tags: ['トレンド相場','レンジ相場','薄商い','イベント相場'] },
+];
+
+// インメモリキャッシュ
+let tagMasterCache = null;
+
+function getTagMaster() {
+  return tagMasterCache || JSON.parse(JSON.stringify(DEFAULT_TAG_MASTER));
+}
+
+// GASからタグマスターを取得
+async function fetchTagMaster() {
+  if (!getGasUrl()) {
+    tagMasterCache = JSON.parse(JSON.stringify(DEFAULT_TAG_MASTER));
+    return;
+  }
+  try {
+    const res = await fetch(getGasUrl() + '?action=getTagMaster');
+    const data = await res.json();
+    if (data.status === 'ok') {
+      tagMasterCache = data.master;
+    } else {
+      tagMasterCache = JSON.parse(JSON.stringify(DEFAULT_TAG_MASTER));
+    }
+  } catch(e) {
+    tagMasterCache = JSON.parse(JSON.stringify(DEFAULT_TAG_MASTER));
+    console.warn('タグマスター取得失敗:', e);
+  }
+}
+
+// GASにタグマスターを保存（都度）
+async function pushTagMaster(master) {
+  tagMasterCache = master;
+  rebuildAllTradeTagUI();
+  if (!getGasUrl()) return;
+  try {
+    await gasPost({ action: 'saveTagMaster', master });
+  } catch(e) {
+    console.warn('タグマスター保存失敗:', e);
+  }
+}
+
+// ── 状態 ──
+const state = {
+  grades: { overall: '', am: '', pm: '' },
+  tradeImages: [[], [], [], [], []],
+  tradeTags: [new Set(), new Set(), new Set(), new Set(), new Set()]
+};
+
+// ── 初期化 ──
+document.addEventListener('DOMContentLoaded', async () => {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('date').value = today;
+  updateDateDisplay();
+
+  // GAS接続確認＆タグマスター取得
+  updateGasStatus('loading');
+  await fetchTagMaster();
+
+  buildTradePanels();
+  renderSettingsPage();
+  renderConnectPage();
+
+  if (!getGasUrl()) {
+    updateGasStatus('demo');
+  } else {
+    updateGasStatus('connected');
+    // 今日の日付でデータ読み込み
+    await loadDRCByDate(today);
+  }
+});
+
+function updateGasStatus(state) {
+  const dot  = document.getElementById('gas-dot');
+  const text = document.getElementById('gas-status-text');
+  if (!dot || !text) return;
+  dot.className = 'gas-dot';
+  if (state === 'connected') {
+    dot.classList.add('connected');
+    text.textContent = 'GAS接続済み';
+  } else if (state === 'error') {
+    dot.classList.add('error');
+    text.textContent = 'GAS接続エラー';
+  } else if (state === 'demo') {
+    text.textContent = 'デモモード（GAS未設定）';
+  } else {
+    text.textContent = 'GASに接続中...';
+  }
+}
+
+function updateDateDisplay() {
+  const d = new Date(document.getElementById('date').value + 'T00:00:00');
+  const days = ['日','月','火','水','木','金','土'];
+  const str = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日（${days[d.getDay()]}）`;
+  document.getElementById('form-date-display').textContent = str;
+}
+document.addEventListener('change', async e => {
+  if (e.target.id === 'date') {
+    updateDateDisplay();
+    await loadDRCByDate(e.target.value);
+  }
+});
+
+// ── 日付別データ読み込み ──
+async function loadDRCByDate(date) {
+  if (!getGasUrl() || !date) return;
+  showStatus('データを確認中...', 'loading');
+  try {
+    const res  = await fetch(getGasUrl() + '?action=getDRC&dateFrom=' + date + '&dateTo=' + date);
+    const data = await res.json();
+    if (data.status === 'ok' && data.records && data.records.length > 0) {
+      fillForm(data.records[0]);
+      showStatus('★ ' + date + ' のデータを読み込みました（編集・上書き保存できます）', 'success');
+    } else {
+      clearForm(date);
+      showStatus('', '');
+    }
+  } catch(e) {
+    showStatus('', '');
+  }
+}
+
+// フォームにデータを流し込む
+function fillForm(r) {
+  const v = (key) => r[key] || '';
+
+  // P&L
+  document.getElementById('pnl').value = v('P&L');
+
+  // 総合評価
+  if (v('総合評価')) selectGrade('overall', v('総合評価'));
+
+  // コンディション
+  const mood = parseInt(v('朝の気分')) || 5;
+  const sleep = parseInt(v('睡眠の質')) || 5;
+  document.getElementById('mood').value = mood;
+  document.getElementById('mood-val').textContent = mood;
+  document.getElementById('sleep').value = sleep;
+  document.getElementById('sleep-val').textContent = sleep;
+  document.getElementById('condition-note').value = v('コンディションメモ');
+
+  // FOMO
+  const fomoMap = {
+    anxiety: 'FOMO_心配不安', sns: 'FOMO_SNS',
+    regret: 'FOMO_手放した銘柄', urge: 'FOMO_衝動', breath: 'FOMO_深呼吸'
+  };
+  document.querySelectorAll('.fomo-item').forEach(el => {
+    const key = fomoMap[el.dataset.value];
+    const val = v(key); const checked = val === 'TRUE' || val === true || val === 'true';
+    el.classList.toggle('checked', checked);
+  });
+  document.getElementById('fomo-note').value = v('FOMO自由記述');
+
+  // プロセス目標
+  document.getElementById('goal').value = v('プロセス目標');
+
+  // 前場
+  if (v('前場評価')) selectGrade('am', v('前場評価'));
+  document.getElementById('am-setup').value   = v('前場セットアップ');
+  document.getElementById('am-playbook').value = v('前場PB裁量');
+  document.getElementById('am-size').value    = v('前場サイズ');
+  document.getElementById('am-comment').value  = v('前場コメント');
+
+  // 後場
+  if (v('後場評価')) selectGrade('pm', v('後場評価'));
+  document.getElementById('pm-setup').value   = v('後場セットアップ');
+  document.getElementById('pm-playbook').value = v('後場PB裁量');
+  document.getElementById('pm-size').value    = v('後場サイズ');
+  document.getElementById('pm-comment').value  = v('後場コメント');
+
+  // トレード記録①〜⑤
+  const tradeKeys = [
+    ['銘柄①','損益①','分析①','チャート分析①','タグ①'],
+    ['銘柄②','損益②','分析②','チャート分析②','タグ②'],
+    ['銘柄③','損益③','分析③','チャート分析③','タグ③'],
+    ['銘柄④','損益④','分析④','チャート分析④','タグ④'],
+    ['銘柄⑤','損益⑤','分析⑤','チャート分析⑤','タグ⑤'],
+  ];
+  tradeKeys.forEach(([ticker,pnl,analysis,chartNote,tags], i) => {
+    const tf = id => { const el = document.getElementById(id+i); if(el) el.value = v(ticker.replace('銘柄',id)); };
+    const el_ticker    = document.getElementById('trade-ticker-'   + i);
+    const el_pnl       = document.getElementById('trade-pnl-'      + i);
+    const el_analysis  = document.getElementById('trade-analysis-' + i);
+    const el_chartNote = document.getElementById('trade-chart-note-' + i);
+    if (el_ticker)    el_ticker.value    = v(ticker);
+    if (el_pnl)       el_pnl.value       = v(pnl);
+    if (el_analysis)  el_analysis.value  = v(analysis);
+    if (el_chartNote) el_chartNote.value = v(chartNote);
+    // タグ復元
+    const tagStr = v(tags);
+    state.tradeTags[i] = new Set(tagStr ? tagStr.split(',').map(t => t.trim()).filter(Boolean) : []);
+    renderTradeTagUI(i);
+    // プレビューをクリア（loadAndRenderImagesで後から表示）
+    state.tradeImages[i] = [];
+    const previewContainer = document.getElementById('img-previews-' + i);
+    if (previewContainer) previewContainer.innerHTML = '';
+  });
+
+  // プレイバック
+  document.getElementById('insight').value = v('気づき');
+  document.getElementById('good').value    = v('良かった点');
+  document.getElementById('bad').value     = v('悪かった点');
+  document.getElementById('emotion').value = v('感情の動き');
+  document.getElementById('action').value  = v('今日から対応');
+
+  // マントラ
+  document.getElementById('mantra-today').value    = v('今日の言葉');
+  document.getElementById('mantra-tomorrow').value = v('明日への言葉');
+
+  // 画像をGASから取得して表示（非同期）
+  const dateVal = document.getElementById('date').value;
+  if (dateVal) loadAndRenderImages(dateVal);
+}
+
+// フォームを全クリア
+function clearForm(date) {
+  // 評価リセット
+  ['overall','am','pm'].forEach(g => {
+    state.grades[g] = '';
+    const container = document.getElementById('grade-' + g);
+    if (container) container.querySelectorAll('.grade-btn').forEach(b => b.className = 'grade-btn');
+  });
+
+  // 数値・テキスト系
+  document.getElementById('pnl').value          = '';
+  document.getElementById('mood').value         = 5;
+  document.getElementById('mood-val').textContent = '5';
+  document.getElementById('sleep').value        = 5;
+  document.getElementById('sleep-val').textContent = '5';
+  document.getElementById('condition-note').value = '';
+  document.getElementById('fomo-note').value    = '';
+  document.getElementById('goal').value         = '';
+  document.getElementById('am-setup').value     = '';
+  document.getElementById('am-playbook').value  = '';
+  document.getElementById('am-size').value      = '';
+  document.getElementById('am-comment').value   = '';
+  document.getElementById('pm-setup').value     = '';
+  document.getElementById('pm-playbook').value  = '';
+  document.getElementById('pm-size').value      = '';
+  document.getElementById('pm-comment').value   = '';
+  document.getElementById('insight').value      = '';
+  document.getElementById('good').value         = '';
+  document.getElementById('bad').value          = '';
+  document.getElementById('emotion').value      = '';
+  document.getElementById('action').value       = '';
+  document.getElementById('mantra-today').value    = '';
+  document.getElementById('mantra-tomorrow').value = '';
+
+  // FOMOチェッククリア
+  document.querySelectorAll('.fomo-item').forEach(el => el.classList.remove('checked'));
+
+  // トレード記録クリア
+  for (let i = 0; i < 5; i++) {
+    state.tradeTags[i]  = new Set();
+    state.tradeImages[i] = [];
+    ['trade-ticker-','trade-pnl-','trade-analysis-','trade-chart-note-'].forEach(prefix => {
+      const el = document.getElementById(prefix + i);
+      if (el) el.value = '';
+    });
+    const previews = document.getElementById('img-previews-' + i);
+    if (previews) previews.innerHTML = '';
+    renderTradeTagUI(i);
+  }
+}
+
+// ── タブ切替 ──
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById('page-' + name).classList.add('active');
+  if (name === 'settings') renderSettingsPage();
+  if (name === 'connect') renderConnectPage();
+}
+
+// ── 評価ボタン ──
+function selectGrade(group, grade) {
+  state.grades[group] = grade;
+  const container = document.getElementById('grade-' + group);
+  container.querySelectorAll('.grade-btn').forEach(btn => {
+    btn.className = 'grade-btn';
+    if (btn.textContent.trim() === grade) {
+      btn.classList.add('selected-' + (grade === 'N/A' ? 'C' : grade));
+    }
+  });
+}
+
+// ── FOMOチェック ──
+function toggleFomo(el) {
+  el.classList.toggle('checked');
+}
+
+// ── トレードパネル ──
+function buildTradePanels() {
+  const container = document.getElementById('trade-panels');
+  container.innerHTML = '';
+  for (let i = 0; i < 5; i++) {
+    const panel = document.createElement('div');
+    panel.className = 'trade-panel' + (i === 0 ? ' active' : '');
+    panel.id = 'trade-panel-' + i;
+    panel.innerHTML = `
+      <div class="grid-2" style="margin-bottom:12px;">
+        <div class="field">
+          <label>銘柄</label>
+          <input type="text" id="trade-ticker-${i}" placeholder="例：レーザーテック" />
+        </div>
+        <div class="field">
+          <label>損益（円）</label>
+          <div class="pnl-field">
+            <span class="pnl-prefix">¥</span>
+            <input type="number" id="trade-pnl-${i}" placeholder="例: -108000" />
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label>トレード分析</label>
+        <textarea id="trade-analysis-${i}" rows="5" placeholder="エントリー根拠、判断の経緯、反省点..."></textarea>
+      </div>
+      <div class="field">
+        <label>チャート分析</label>
+        <textarea id="trade-chart-note-${i}" rows="3" placeholder="チャートから読み取れたこと..."></textarea>
+      </div>
+      <div class="field">
+        <label>チャート画像（複数可）</label>
+        <div class="img-upload-area" onclick="document.getElementById('img-input-${i}').click()">
+          <input type="file" id="img-input-${i}" accept="image/*" multiple
+            onchange="handleImages(${i}, this.files)" />
+          <div class="img-upload-text">クリックして画像を選択 <span>または複数ドロップ</span></div>
+        </div>
+        <div class="img-previews" id="img-previews-${i}"></div>
+      </div>
+      <div class="field">
+        <label>タグ（複数選択可）</label>
+        <div id="trade-tag-ui-${i}"></div>
+      </div>
+    `;
+    // タグマスターからUI生成
+    renderTradeTagUI(i);
+    container.appendChild(panel);
+
+    // ドロップ対応
+    const area = panel.querySelector('.img-upload-area');
+    area.addEventListener('dragover', e => { e.preventDefault(); area.style.borderColor = 'var(--accent)'; });
+    area.addEventListener('dragleave', () => { area.style.borderColor = ''; });
+    area.addEventListener('drop', e => {
+      e.preventDefault();
+      area.style.borderColor = '';
+      handleImages(i, e.dataTransfer.files);
+    });
+  }
+}
+
+function switchTrade(idx) {
+  document.querySelectorAll('.trade-tab').forEach((t,i) => t.classList.toggle('active', i===idx));
+  document.querySelectorAll('.trade-panel').forEach((p,i) => p.classList.toggle('active', i===idx));
+}
+
+// ── 画像処理 ──
+function handleImages(tradeIdx, files) {
+  Array.from(files).forEach(file => {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      state.tradeImages[tradeIdx].push({ name: file.name, base64: e.target.result.split(',')[1], type: file.type });
+      renderPreviews(tradeIdx);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderPreviews(tradeIdx) {
+  const container = document.getElementById('img-previews-' + tradeIdx);
+  container.innerHTML = '';
+  state.tradeImages[tradeIdx].forEach((img, i) => {
+    const item = document.createElement('div');
+    item.className = 'img-preview-item';
+    item.innerHTML = `
+      <img src="data:${img.type};base64,${img.base64}" alt="chart" />
+      <div class="img-overlay">
+        <span>${img.name}</span>
+        <button class="img-remove" onclick="event.stopPropagation();removeImage(${tradeIdx},${i})" style="position:static;background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:4px;padding:2px 8px;font-size:13px;cursor:pointer;">削除</button>
+      </div>
+    `;
+    container.appendChild(item);
+  });
+}
+
+function removeImage(tradeIdx, imgIdx) {
+  state.tradeImages[tradeIdx].splice(imgIdx, 1);
+  renderPreviews(tradeIdx);
+}
+
+// ── トレードタグUI生成 ──
+function renderTradeTagUI(tradeIdx) {
+  const master = getTagMaster();
+  const container = document.getElementById('trade-tag-ui-' + tradeIdx);
+  if (!container) return;
+  let html = '<div class="trade-tag-groups">';
+  master.forEach((cat, ci) => {
+    html += `<div style="margin-bottom:10px;">
+      <div class="tag-group-label">${cat.name}</div>
+      <div class="tag-list">`;
+    cat.tags.forEach(tag => {
+      const isSelected = state.tradeTags[tradeIdx].has(tag);
+      html += `<span class="tag-chip${isSelected ? ' selected' : ''}" onclick="toggleTradeTag(this,${tradeIdx})">${tag}</span>`;
+    });
+    html += '</div></div>';
+  });
+  html += '</div>';
+  html += `<div class="tag-custom-wrap" style="margin-top:10px;">
+    <input type="text" id="custom-tag-input-${tradeIdx}" placeholder="カスタムタグを追加..." onkeydown="if(event.key==='Enter'){addTradeCustomTag(${tradeIdx})}" />
+    <button class="tag-add-btn" onclick="addTradeCustomTag(${tradeIdx})">追加</button>
+  </div>
+  <div class="tag-list" id="trade-tags-custom-${tradeIdx}" style="margin-top:8px;"></div>`;
+  container.innerHTML = html;
+}
+
+// ── 設定ページ描画 ──
+function renderSettingsPage() {
+  const master = getTagMaster();
+  const container = document.getElementById('settings-tag-categories');
+  if (!container) return;
+  container.innerHTML = '';
+  master.forEach((cat, ci) => {
+    const div = document.createElement('div');
+    div.className = 'settings-category';
+    div.innerHTML = `
+      <div class="settings-category-header">
+        <div class="settings-category-name">
+          <input type="text" value="${cat.name}" onchange="renameCat(${ci}, this.value)" />
+        </div>
+        <button class="btn-del-cat" onclick="deleteCategory(${ci})">カテゴリを削除</button>
+      </div>
+      <div class="settings-tags" id="settings-tags-${ci}">
+        ${cat.tags.map((tag, ti) => `
+          <div class="settings-tag">
+            <span>${tag}</span>
+            <button class="settings-tag-del" onclick="deleteTag(${ci},${ti})" title="削除">×</button>
+          </div>`).join('')}
+      </div>
+      <div class="settings-add-row">
+        <input type="text" id="new-tag-input-${ci}" placeholder="新しいタグ名..." onkeydown="if(event.key==='Enter'){addTag(${ci})}" />
+        <button class="btn-add-tag" onclick="addTag(${ci})">＋ 追加</button>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function renameCat(ci, newName) {
+  const master = getTagMaster();
+  master[ci].name = newName;
+  pushTagMaster(master);
+}
+
+function deleteCategory(ci) {
+  if (!confirm('このカテゴリを削除しますか？')) return;
+  const master = getTagMaster();
+  master.splice(ci, 1);
+  pushTagMaster(master);
+  renderSettingsPage();
+}
+
+function deleteTag(ci, ti) {
+  const master = getTagMaster();
+  master[ci].tags.splice(ti, 1);
+  pushTagMaster(master);
+  renderSettingsPage();
+}
+
+function addTag(ci) {
+  const input = document.getElementById('new-tag-input-' + ci);
+  const val = input.value.trim();
+  if (!val) return;
+  const master = getTagMaster();
+  if (master[ci].tags.includes(val)) { input.value = ''; return; }
+  master[ci].tags.push(val);
+  input.value = '';
+  pushTagMaster(master);
+  renderSettingsPage();
+}
+
+function addTagCategory() {
+  const master = getTagMaster();
+  master.push({ id: 'custom_' + Date.now(), name: '新しいカテゴリ', tags: [] });
+  pushTagMaster(master);
+  renderSettingsPage();
+}
+
+function rebuildAllTradeTagUI() {
+  for (let i = 0; i < 5; i++) renderTradeTagUI(i);
+}
+
+// ── GASからBase64画像を取得して表示 ──
+async function loadAndRenderImages(date) {
+  if (!getGasUrl()) return;
+  try {
+    const res  = await fetch(getGasUrl() + '?action=getImages&date=' + date);
+    const data = await res.json();
+    if (data.status !== 'ok' || !data.images.length) return;
+    data.images.forEach(img => {
+      const container = document.getElementById('img-previews-' + img.tradeIdx);
+      if (!container) return;
+      const item = document.createElement('div');
+      item.className = 'img-preview-item';
+      const src = 'data:' + img.mimeType + ';base64,' + img.base64;
+      item.innerHTML = `
+        <img src="${src}" alt="chart" style="width:100%;height:auto;display:block;max-height:600px;object-fit:contain;" />
+        <div class="img-overlay">
+          <span>${img.name}</span>
+        </div>
+      `;
+      container.appendChild(item);
+    });
+  } catch(e) {
+    console.warn('画像読み込み失敗:', e);
+  }
+}
+
+// ── 連携設定 ──
+function renderConnectPage() {
+  const gasUrl    = getGasUrl();
+  const folderId  = getFolderId();
+
+  // GAS保存済み表示
+  const savedGasWrap = document.getElementById('saved-gas-wrap');
+  if (gasUrl) {
+    document.getElementById('saved-gas-val').textContent = gasUrl;
+    savedGasWrap.style.display = 'block';
+    document.getElementById('dot-gas').className = 'gas-dot connected';
+    document.getElementById('status-gas-val').textContent = '接続済み';
+  } else {
+    savedGasWrap.style.display = 'none';
+    document.getElementById('dot-gas').className = 'gas-dot';
+    document.getElementById('status-gas-val').textContent = '未設定';
+  }
+
+  // Drive保存済み表示
+  const savedFolderWrap = document.getElementById('saved-folder-wrap');
+  if (folderId) {
+    document.getElementById('saved-folder-val').textContent = folderId;
+    savedFolderWrap.style.display = 'block';
+    document.getElementById('dot-drive').className = 'gas-dot connected';
+    document.getElementById('status-drive-val').textContent = '設定済み';
+  } else {
+    savedFolderWrap.style.display = 'none';
+    document.getElementById('dot-drive').className = 'gas-dot';
+    document.getElementById('status-drive-val').textContent = '未設定';
+  }
+}
+
+async function testGasConnection() {
+  const url = document.getElementById('input-gas-url').value.trim();
+  if (!url) { showConnectResult('result-gas', 'error', 'URLを入力してください'); return; }
+  showConnectResult('result-gas', 'loading', '接続テスト中...');
+  document.getElementById('btn-save-gas').disabled = true;
+  try {
+    const res  = await fetch(url + '?action=ping');
+    const data = await res.json();
+    if (data.status === 'ok') {
+      showConnectResult('result-gas', 'success',
+        `✓ 接続成功　スプレッドシート名：${data.spreadsheetName}　確認日時：${data.timestamp}`);
+      document.getElementById('btn-save-gas').disabled = false;
+    } else {
+      showConnectResult('result-gas', 'error', 'エラー：' + (data.message || '接続できませんでした'));
+    }
+  } catch(e) {
+    showConnectResult('result-gas', 'error', '通信エラー。URLを確認してください。' + e.message);
+  }
+}
+
+function saveGasUrl() {
+  const url = document.getElementById('input-gas-url').value.trim();
+  if (!url) return;
+  localStorage.setItem('drc_gas_url', url);
+  document.getElementById('input-gas-url').value = '';
+  document.getElementById('btn-save-gas').disabled = true;
+  showConnectResult('result-gas', 'success', '✓ 保存しました。次回からこのURLで接続します。');
+  renderConnectPage();
+  updateGasStatus('connected');
+  // タグマスターを再取得
+  fetchTagMaster().then(() => { buildTradePanels(); renderSettingsPage(); });
+}
+
+function clearGasUrl() {
+  if (!confirm('GAS URLの設定を解除しますか？')) return;
+  localStorage.removeItem('drc_gas_url');
+  renderConnectPage();
+  updateGasStatus('demo');
+}
+
+async function testFolderConnection() {
+  const folderId = document.getElementById('input-folder-id').value.trim();
+  const gasUrl   = getGasUrl();
+  if (!folderId) { showConnectResult('result-folder', 'error', 'フォルダIDを入力してください'); return; }
+  if (!gasUrl)   { showConnectResult('result-folder', 'error', 'まずStep 1でGAS URLを設定してください'); return; }
+  showConnectResult('result-folder', 'loading', 'フォルダを確認中...');
+  document.getElementById('btn-save-folder').disabled = true;
+  try {
+    const res  = await fetch(gasUrl + '?action=checkFolder&folderId=' + encodeURIComponent(folderId));
+    const data = await res.json();
+    if (data.status === 'ok') {
+      showConnectResult('result-folder', 'success',
+        `✓ フォルダ確認済み　フォルダ名：${data.folderName}`);
+      document.getElementById('btn-save-folder').disabled = false;
+    } else {
+      showConnectResult('result-folder', 'error', 'エラー：' + (data.message || 'フォルダが見つかりません'));
+    }
+  } catch(e) {
+    showConnectResult('result-folder', 'error', '通信エラー：' + e.message);
+  }
+}
+
+function saveFolderId() {
+  const folderId = document.getElementById('input-folder-id').value.trim();
+  if (!folderId) return;
+  localStorage.setItem('drc_folder_id', folderId);
+  document.getElementById('input-folder-id').value = '';
+  document.getElementById('btn-save-folder').disabled = true;
+  showConnectResult('result-folder', 'success', '✓ 保存しました。');
+  renderConnectPage();
+}
+
+function clearFolderId() {
+  if (!confirm('Driveフォルダの設定を解除しますか？')) return;
+  localStorage.removeItem('drc_folder_id');
+  renderConnectPage();
+}
+
+function showConnectResult(id, type, msg) {
+  const el = document.getElementById(id);
+  el.className = 'connect-result ' + type;
+  el.textContent = msg;
+}
+
+// ── タグ（トレードごと） ──
+function toggleTradeTag(el, tradeIdx) {
+  el.classList.toggle('selected');
+  const tag = el.textContent.trim();
+  if (el.classList.contains('selected')) state.tradeTags[tradeIdx].add(tag);
+  else state.tradeTags[tradeIdx].delete(tag);
+}
+
+function addTradeCustomTag(tradeIdx) {
+  const input = document.getElementById('custom-tag-input-' + tradeIdx);
+  const val = input.value.trim();
+  if (!val) return;
+  const chip = document.createElement('span');
+  chip.className = 'tag-chip selected';
+  chip.textContent = val;
+  chip.onclick = () => toggleTradeTag(chip, tradeIdx);
+  state.tradeTags[tradeIdx].add(val);
+  document.getElementById('trade-tags-custom-' + tradeIdx).appendChild(chip);
+  input.value = '';
+}
+
+// ── フォームデータ収集 ──
+function collectFormData() {
+  const fomoChecked = Array.from(document.querySelectorAll('.fomo-item.checked')).map(el => el.dataset.value);
+
+  const trades = [];
+  for (let i = 0; i < 5; i++) {
+    const ticker = document.getElementById('trade-ticker-' + i).value.trim();
+    const pnl = document.getElementById('trade-pnl-' + i).value;
+    const analysis = document.getElementById('trade-analysis-' + i).value.trim();
+    const chartNote = document.getElementById('trade-chart-note-' + i).value.trim();
+    if (ticker || pnl || analysis) {
+      trades.push({ ticker, pnl: pnl ? parseInt(pnl) : null, analysis, chartNote, images: state.tradeImages[i] });
+    }
+  }
+
+  return {
+    date: document.getElementById('date').value,
+    pnl: document.getElementById('pnl').value ? parseInt(document.getElementById('pnl').value) : null,
+    grade_overall: state.grades.overall,
+    mood: parseInt(document.getElementById('mood').value),
+    sleep: parseInt(document.getElementById('sleep').value),
+    fomo_anxiety: fomoChecked.includes('anxiety'),
+    fomo_sns: fomoChecked.includes('sns'),
+    fomo_regret: fomoChecked.includes('regret'),
+    fomo_urge: fomoChecked.includes('urge'),
+    fomo_breath: fomoChecked.includes('breath'),
+    fomo_note: document.getElementById('fomo-note').value.trim(),
+    condition_note: document.getElementById('condition-note').value.trim(),
+    goal: document.getElementById('goal').value.trim(),
+    am_grade: state.grades.am,
+    am_setup: document.getElementById('am-setup').value,
+    am_playbook: document.getElementById('am-playbook').value,
+    am_size: document.getElementById('am-size').value.trim(),
+    am_comment: document.getElementById('am-comment').value.trim(),
+    pm_grade: state.grades.pm,
+    pm_setup: document.getElementById('pm-setup').value,
+    pm_playbook: document.getElementById('pm-playbook').value,
+    pm_size: document.getElementById('pm-size').value.trim(),
+    pm_comment: document.getElementById('pm-comment').value.trim(),
+    trades,
+
+    insight: document.getElementById('insight').value.trim(),
+    good: document.getElementById('good').value.trim(),
+    bad: document.getElementById('bad').value.trim(),
+    emotion: document.getElementById('emotion').value.trim(),
+    action: document.getElementById('action').value.trim(),
+    mantra_today: document.getElementById('mantra-today').value.trim(),
+    mantra_tomorrow: document.getElementById('mantra-tomorrow').value.trim(),
+  };
+}
+
+// ── 送信 ──
+async function submitDRC() {
+  const data = collectFormData();
+
+  if (!data.date) { showStatus('日付を入力してください', 'error'); return; }
+  if (!data.grade_overall) { showStatus('総合評価を選択してください', 'error'); return; }
+
+  const btn = document.getElementById('btn-submit');
+  btn.disabled = true;
+
+  // デモモード
+  if (!getGasUrl()) {
+    showStatus('保存中...（デモモード）', 'loading');
+    await new Promise(r => setTimeout(r, 800));
+    console.log('DRC Data:', data);
+    showStatus('✓ 保存しました（デモモード）', 'success');
+    btn.disabled = false;
+    return;
+  }
+
+  showStatus('保存中...', 'loading');
+  try {
+    // Step1: テキストデータを保存（画像なし）
+    const dataNoImg = { ...data, folderId: getFolderId() };
+    dataNoImg.trades = (data.trades || []).map(t => ({ ...t, images: [] }));
+    const result = await gasPost({ action: 'saveDRC', data: dataNoImg });
+    if (result.status !== 'ok') {
+      showStatus('エラー: ' + (result.message || '保存に失敗しました'), 'error');
+      updateGasStatus('error');
+      btn.disabled = false;
+      return;
+    }
+
+    // Step2: 画像を1枚ずつ個別送信
+    const allImages = [];
+    (data.trades || []).forEach((trade, ti) => {
+      (trade.images || []).forEach((img, ii) => {
+        allImages.push({ tradeIdx: ti, imgIdx: ii, ...img });
+      });
+    });
+
+    if (allImages.length > 0) {
+      showStatus(`テキスト保存完了。画像を送信中 (0/${allImages.length})...`, 'loading');
+      for (let k = 0; k < allImages.length; k++) {
+        const img = allImages[k];
+        showStatus(`画像を送信中 (${k+1}/${allImages.length})...`, 'loading');
+        await gasPost({
+          action: 'saveImage',
+          date: data.date,
+          folderId: getFolderId(),
+          tradeIdx: img.tradeIdx,
+          imgIdx:   img.imgIdx,
+          base64:   img.base64,
+          type:     img.type,
+          name:     img.name
+        });
+      }
+    }
+
+    showStatus('✓ ' + (result.message || '保存しました'), 'success');
+    updateGasStatus('connected');
+  } catch (e) {
+    showStatus('通信エラー。GAS URLとデプロイ設定を確認してください', 'error');
+    updateGasStatus('error');
+  }
+  btn.disabled = false;
+}
+
+// GASへのPOST送信（CORS対策：form形式で送信）
+async function gasPost(payload) {
+  const form = new FormData();
+  form.append('payload', JSON.stringify(payload));
+  const res = await fetch(getGasUrl(), { method: 'POST', body: form });
+  return res.json();
+}
+
+function showStatus(msg, type) {
+  const el = document.getElementById('save-status');
+  el.textContent = msg;
+  el.className = 'save-status ' + type;
+}
+</script>
+</body>
+</html>
