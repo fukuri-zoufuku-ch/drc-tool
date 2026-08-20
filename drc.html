@@ -2038,7 +2038,13 @@ async function loadAndRenderImages(date) {
     const res  = await fetch(getGasUrl() + '?action=getImages&date=' + date);
     const data = await res.json();
     if (data.status !== 'ok' || !data.images.length) return;
-    data.images.forEach(img => {
+    // エラーオブジェクトを除外し、有効な画像のみ処理
+    const validImages = data.images.filter(img => img.tradeIdx !== undefined && img.base64);
+    if (!validImages.length) {
+      console.warn('有効な画像なし。デバッグ:', JSON.stringify(data.images));
+      return;
+    }
+    validImages.forEach(img => {
       const container = document.getElementById('img-previews-' + img.tradeIdx);
       if (!container) return;
       const item = document.createElement('div');
