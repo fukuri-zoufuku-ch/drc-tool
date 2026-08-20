@@ -439,6 +439,29 @@
   .btn-submit:active { transform: scale(0.99); }
   .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; }
 
+  .submit-row {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+  }
+  .submit-row .btn-submit { flex: 1; }
+  .btn-delete {
+    padding: 14px 20px;
+    background: transparent;
+    border: 1px solid var(--red);
+    border-radius: var(--radius);
+    color: var(--red);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+    white-space: nowrap;
+    display: none;
+  }
+  .btn-delete:hover { background: var(--red-dim); }
+  .btn-delete:disabled { opacity: 0.4; cursor: not-allowed; }
+
   /* ─── 保存ステータス ─── */
   .save-status {
     text-align: center;
@@ -1263,7 +1286,10 @@
 
   <!-- 送信 -->
   <div class="submit-wrap">
-    <button class="btn-submit" id="btn-submit" onclick="submitDRC()">記録を保存する</button>
+    <div class="submit-row">
+      <button class="btn-submit" id="btn-submit" onclick="submitDRC()">記録を保存する</button>
+      <button class="btn-delete" id="btn-delete" onclick="deleteDRC()">この日を削除</button>
+    </div>
     <div class="save-status" id="save-status"></div>
   </div>
 
@@ -1641,6 +1667,37 @@ document.addEventListener('change', async e => {
   }
 });
 
+// ── 削除ボタン表示制御 ──
+function showDeleteBtn(visible) {
+  const btn = document.getElementById('btn-delete');
+  if (btn) btn.style.display = visible ? 'block' : 'none';
+}
+
+// ── DRC削除 ──
+async function deleteDRC() {
+  const date = document.getElementById('date').value;
+  if (!date) return;
+  if (!confirm(date + ' のデータを削除しますか？\nこの操作は取り消せません。')) return;
+
+  const btn = document.getElementById('btn-delete');
+  btn.disabled = true;
+  showStatus('削除中...', 'loading');
+
+  try {
+    const result = await gasPost({ action: 'deleteDRC', date });
+    if (result.status === 'ok') {
+      showStatus('✓ ' + date + ' のデータを削除しました', 'success');
+      showDeleteBtn(false);
+      clearForm(date);
+    } else {
+      showStatus('エラー: ' + (result.message || '削除に失敗しました'), 'error');
+    }
+  } catch(e) {
+    showStatus('通信エラー。削除に失敗しました', 'error');
+  }
+  btn.disabled = false;
+}
+
 // ── 日付別データ読み込み ──
 async function loadDRCByDate(date) {
   if (!getGasUrl() || !date) return;
@@ -1651,9 +1708,11 @@ async function loadDRCByDate(date) {
     if (data.status === 'ok' && data.records && data.records.length > 0) {
       fillForm(data.records[0]);
       showStatus('★ ' + date + ' のデータを読み込みました（編集・上書き保存できます）', 'success');
+      showDeleteBtn(true);
     } else {
       clearForm(date);
       showStatus('', '');
+      showDeleteBtn(false);
     }
   } catch(e) {
     showStatus('', '');
@@ -1754,6 +1813,8 @@ function fillForm(r) {
 
 // フォームを全クリア
 function clearForm(date) {
+  showDeleteBtn(false);
+
   // 評価リセット
   ['overall','am','pm'].forEach(g => {
     state.grades[g] = '';
