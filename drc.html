@@ -1439,6 +1439,13 @@
   <div id="settings-tag-categories"></div>
 
   <button class="btn-add-category" onclick="addTagCategory()">＋ カテゴリを追加</button>
+
+  <div style="margin-top:40px;">
+    <div class="page-sub" style="font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px;">評価基準（A〜F）の編集</div>
+    <div class="page-sub" style="margin-bottom:20px;">ホバー時に表示されるツールチップの内容を編集できます</div>
+    <div id="settings-grade-criteria"></div>
+  </div>
+
   <div class="settings-note">変更は自動で保存されます</div>
 </div>
 </div>
@@ -1657,6 +1664,62 @@
 </div>
 
 <script>
+// ── 評価基準（localStorageで管理） ──
+const DEFAULT_GRADE_CRITERIA = {
+  A: {
+    summary: 'ルールを完全に守り、感情に左右されず再現性のあるトレードを実行できた',
+    examples: 'A+セットアップのみを取った／損切りルールを厳守／集中力が高く冷静に判断'
+  },
+  B: {
+    summary: '概ねルールを守り、多少の迷いや感情があったが大きな逸脱はない',
+    examples: 'エントリー基準は守ったが利確が早すぎた／不安を感じたが冷静に対処'
+  },
+  C: {
+    summary: 'ルール違反や感情的判断が複数あり、改善余地が大きい',
+    examples: '損切りを遅らせた／根拠の薄いエントリーをしてしまった'
+  },
+  D: {
+    summary: '明確なルール逸脱が多く、感情に流されてしまった',
+    examples: '「取り返そう」として無計画にロットを増やした／集中力が欠け雑なトレードを繰り返した'
+  },
+  E: {
+    summary: 'ルールをほぼ無視し、ギャンブル的な行動に近い',
+    examples: 'セットアップ無視で衝動的にエントリー／損切りを拒否して大きな含み損を抱えた'
+  },
+  F: {
+    summary: '学びや改善につながる行動がなく、完全に崩壊した日',
+    examples: 'ルールを全く守らず感情的に連続トレード／記録や振り返りも放棄'
+  }
+};
+
+function loadGradeCriteria() {
+  try {
+    const saved = localStorage.getItem('drc_grade_criteria');
+    return saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_GRADE_CRITERIA));
+  } catch(e) { return JSON.parse(JSON.stringify(DEFAULT_GRADE_CRITERIA)); }
+}
+
+function saveGradeCriteria(criteria) {
+  localStorage.setItem('drc_grade_criteria', JSON.stringify(criteria));
+  rebuildTooltips();
+}
+
+function rebuildTooltips() {
+  const criteria = loadGradeCriteria();
+  ['overall','am','pm'].forEach(group => {
+    const container = document.getElementById('grade-' + group);
+    if (!container) return;
+    container.querySelectorAll('.grade-btn-wrap').forEach(wrap => {
+      const btn = wrap.querySelector('.grade-btn');
+      const grade = btn ? btn.textContent.trim() : '';
+      if (!criteria[grade]) return;
+      const tooltip = wrap.querySelector('.grade-tooltip');
+      if (!tooltip) return;
+      tooltip.innerHTML = `<div class="tooltip-grade ${grade}">${grade}</div>${criteria[grade].summary}<br><span style="color:var(--text-muted);font-size:12px;">${criteria[grade].examples}</span>`;
+    });
+  });
+}
+
 // ── GAS設定（localStorageから読み込み） ──
 function getGasUrl()    { return localStorage.getItem('drc_gas_url')    || ''; }
 function getFolderId()  { return localStorage.getItem('drc_folder_id')  || ''; }
@@ -1728,6 +1791,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   buildTradePanels();
   renderSettingsPage();
   renderConnectPage();
+  rebuildTooltips();
 
   if (!getGasUrl()) {
     updateGasStatus('demo');
@@ -1975,7 +2039,7 @@ function switchTab(name, el) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   if (el) el.classList.add('active');
   document.getElementById('page-' + name).classList.add('active');
-  if (name === 'settings') renderSettingsPage();
+  if (name === 'settings') { renderSettingsPage(); renderGradeCriteriaUI(); }
   if (name === 'connect') renderConnectPage();
 }
 
@@ -2151,6 +2215,40 @@ function renderSettingsPage() {
     `;
     container.appendChild(div);
   });
+}
+
+// 評価基準UIの描画
+function renderGradeCriteriaUI() {
+  const container = document.getElementById('settings-grade-criteria');
+  if (!container) return;
+  const criteria = loadGradeCriteria();
+  const grades = ['A','B','C','D','E','F'];
+  const colors = { A:'#4caf7d', B:'#5bbf8a', C:'var(--accent)', D:'#dc8250', E:'var(--red)', F:'#b43232' };
+  container.innerHTML = grades.map(g => `
+    <div class="settings-category" style="margin-bottom:12px;">
+      <div style="font-size:16px;font-weight:700;color:${colors[g]};margin-bottom:12px;">評価 ${g}</div>
+      <div class="field" style="margin-bottom:10px;">
+        <label>基準のまとめ</label>
+        <textarea id="criteria-summary-${g}" rows="2" style="font-size:14px;">${criteria[g]?.summary || ''}</textarea>
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>具体例（／区切り）</label>
+        <textarea id="criteria-examples-${g}" rows="2" style="font-size:14px;">${criteria[g]?.examples || ''}</textarea>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:10px;">
+        <button class="btn-connect primary" style="padding:8px 20px;font-size:14px;" onclick="saveCriteria('${g}')">保存</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function saveCriteria(grade) {
+  const criteria = loadGradeCriteria();
+  criteria[grade] = {
+    summary:  document.getElementById('criteria-summary-' + grade).value.trim(),
+    examples: document.getElementById('criteria-examples-' + grade).value.trim()
+  };
+  saveGradeCriteria(criteria);
 }
 
 function renameCat(ci, newName) {
