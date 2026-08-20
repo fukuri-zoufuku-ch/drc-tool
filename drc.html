@@ -867,22 +867,7 @@
   .connect-status-label { font-size: 13px; color: var(--text-sub); }
   .connect-status-val { font-size: 14px; color: var(--text); font-weight: 500; margin-top: 2px; }
 
-  /* ─── GAS接続ステータスバー ─── */
-  .gas-status-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: var(--surface);
-    border-top: 1px solid var(--border);
-    padding: 8px 24px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 13px;
-    color: var(--text-muted);
-    z-index: 50;
-  }
+  /* ─── GAS接続ステータス（ナビ右端） ─── */
   .gas-dot {
     width: 8px;
     height: 8px;
@@ -892,6 +877,67 @@
   }
   .gas-dot.connected { background: var(--green); box-shadow: 0 0 6px rgba(76,175,125,0.5); }
   .gas-dot.error { background: var(--red); }
+  .nav-gas-status {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 0 0 20px;
+    border-left: 1px solid var(--border);
+  }
+  .nav-gas-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+  .nav-gas-label.connected { color: var(--green); }
+  .nav-gas-label.error { color: var(--red); }
+
+  /* ─── ツールチップ ─── */
+  .grade-btn-wrap {
+    position: relative;
+    display: inline-block;
+  }
+  .grade-tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface-3);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--text);
+    white-space: nowrap;
+    z-index: 200;
+    pointer-events: none;
+    line-height: 1.6;
+    min-width: 240px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  }
+  .grade-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: var(--border-strong);
+  }
+  .grade-btn-wrap:hover .grade-tooltip { display: block; }
+  .tooltip-grade {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .tooltip-grade.A { color: #4caf7d; }
+  .tooltip-grade.B { color: #5bbf8a; }
+  .tooltip-grade.C { color: var(--accent); }
+  .tooltip-grade.D { color: #dc8250; }
+  .tooltip-grade.E { color: var(--red); }
+  .tooltip-grade.F { color: #b43232; }
 
 </style>
 </head>
@@ -908,13 +954,11 @@
   <button class="tab" onclick="switchTab('settings',this)">設定</button>
   <button class="tab" onclick="switchTab('connect',this)">連携設定</button>
   <button class="tab" onclick="switchTab('guide',this)">使い方</button>
+  <div class="nav-gas-status">
+    <div class="gas-dot" id="gas-dot"></div>
+    <span class="nav-gas-label" id="gas-status-text">未設定</span>
+  </div>
 </nav>
-
-<!-- GAS接続ステータスバー -->
-<div class="gas-status-bar" id="gas-status-bar">
-  <div class="gas-dot" id="gas-dot"></div>
-  <span id="gas-status-text">GAS未設定（デモモード）</span>
-</div>
 
 <!-- ── 入力タブ ── -->
 <div id="page-input" class="page active">
@@ -948,13 +992,31 @@
 
     <div class="field">
       <label>総合評価</label>
-      <div class="grade-group" id="grade-overall">
-        <button class="grade-btn" data-grade="A" onclick="selectGrade('overall','A')">A</button>
-        <button class="grade-btn" data-grade="B" onclick="selectGrade('overall','B')">B</button>
-        <button class="grade-btn" data-grade="C" onclick="selectGrade('overall','C')">C</button>
-        <button class="grade-btn" data-grade="D" onclick="selectGrade('overall','D')">D</button>
-        <button class="grade-btn" data-grade="E" onclick="selectGrade('overall','E')">E</button>
-        <button class="grade-btn" data-grade="F" onclick="selectGrade('overall','F')">F</button>
+<div class="grade-group" id="grade-overall">
+        <div class="grade-btn-wrap">
+          <button class="grade-btn" onclick="selectGrade('overall','A')">A</button>
+          <div class="grade-tooltip"><div class="tooltip-grade A">A</div>ルールを完全に守り、感情に左右されず\n再現性のあるトレードを実行できた</div>
+        </div>
+        <div class="grade-btn-wrap">
+          <button class="grade-btn" onclick="selectGrade('overall','B')">B</button>
+          <div class="grade-tooltip"><div class="tooltip-grade B">B</div>概ねルールを守り、多少の迷いはあったが\n大きな逸脱はない</div>
+        </div>
+        <div class="grade-btn-wrap">
+          <button class="grade-btn" onclick="selectGrade('overall','C')">C</button>
+          <div class="grade-tooltip"><div class="tooltip-grade C">C</div>ルール違反や感情的判断が複数あり\n改善余地が大きい</div>
+        </div>
+        <div class="grade-btn-wrap">
+          <button class="grade-btn" onclick="selectGrade('overall','D')">D</button>
+          <div class="grade-tooltip"><div class="tooltip-grade D">D</div>明確なルール逸脱が多く\n感情に流されてしまった</div>
+        </div>
+        <div class="grade-btn-wrap">
+          <button class="grade-btn" onclick="selectGrade('overall','E')">E</button>
+          <div class="grade-tooltip"><div class="tooltip-grade E">E</div>ルールをほぼ無視し\nギャンブル的な行動に近い</div>
+        </div>
+        <div class="grade-btn-wrap">
+          <button class="grade-btn" onclick="selectGrade('overall','F')">F</button>
+          <div class="grade-tooltip"><div class="tooltip-grade F">F</div>学びや改善につながる行動がなく\n完全に崩壊した日</div>
+        </div>
       </div>
     </div>
   </div>
@@ -1641,16 +1703,19 @@ function updateGasStatus(state) {
   const text = document.getElementById('gas-status-text');
   if (!dot || !text) return;
   dot.className = 'gas-dot';
+  text.className = 'nav-gas-label';
   if (state === 'connected') {
     dot.classList.add('connected');
-    text.textContent = 'GAS接続済み';
+    text.classList.add('connected');
+    text.textContent = '接続済み';
   } else if (state === 'error') {
     dot.classList.add('error');
-    text.textContent = 'GAS接続エラー';
+    text.classList.add('error');
+    text.textContent = '接続エラー';
   } else if (state === 'demo') {
-    text.textContent = 'デモモード（GAS未設定）';
+    text.textContent = '未設定';
   } else {
-    text.textContent = 'GASに接続中...';
+    text.textContent = '接続中...';
   }
 }
 
