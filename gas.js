@@ -21,6 +21,7 @@ function doGet(e) {
     if (action === 'getTagMaster')  return jsonResponse(getTagMaster());
     if (action === 'getDRC')        return jsonResponse(getDRC(e.parameter));
     if (action === 'getImages')      return jsonResponse(getImages(e.parameter));
+    if (action === 'getLinks')       return jsonResponse(getLinks());
     return jsonResponse({ status: 'error', message: 'Unknown action: ' + action });
   } catch (err) {
     return jsonResponse({ status: 'error', message: err.message });
@@ -40,6 +41,8 @@ function doPost(e) {
     if (action === 'saveTagMaster') return jsonResponse(saveTagMaster(body.master));
     if (action === 'saveDRC')       return jsonResponse(saveDRC(body.data));
     if (action === 'saveImage')     return jsonResponse(saveImage(body));
+    if (action === 'deleteDRC')     return jsonResponse(deleteDRC(body.date));
+    if (action === 'saveLinks')      return jsonResponse(saveLinks(body.links));
     return jsonResponse({ status: 'error', message: 'Unknown action: ' + action });
   } catch (err) {
     return jsonResponse({ status: 'error', message: err.message });
@@ -163,6 +166,26 @@ function getDefaultTagMaster() {
 // ============================================================
 
 /**
+ * 指定日付のDRCを削除する
+ */
+function deleteDRC(date) {
+  if (!date) return { status: 'error', message: '日付が指定されていません' };
+  var sheet = getOrCreateSheet(SHEET_DRC);
+  var rows  = sheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    var rawDate = rows[i][0];
+    var rowDate = rawDate instanceof Date
+      ? Utilities.formatDate(rawDate, 'Asia/Tokyo', 'yyyy-MM-dd')
+      : String(rawDate).substring(0, 10);
+    if (rowDate === date) {
+      sheet.deleteRow(i + 1);
+      return { status: 'ok', message: date + ' のデータを削除しました' };
+    }
+  }
+  return { status: 'error', message: '該当するデータが見つかりません' };
+}
+
+/**
  * DRC1件を保存する
  * - 日付が既存なら上書き（重複防止）
  * - 画像はGoogleドライブに保存しURLをシートに記録
@@ -241,8 +264,7 @@ function saveImage(body) {
     if (rowDate === date) {
       var cell    = sheet.getRange(i+1, colIdx+1);
       var current = cell.getValue();
-      cell.setValue(current ? current + '
-' + fileUrl : fileUrl);
+      cell.setValue(current ? current + '\n' + fileUrl : fileUrl);
       break;
     }
   }
@@ -467,6 +489,46 @@ function getDRC(params) {
 }
 
 // ============================================================
+//  LINKS シート管理
+// ============================================================
+
+const SHEET_LINKS = 'LINKS';
+
+/**
+ * LINKSシートからリンク一覧を取得
+ * 戻り値: { status:'ok', links: [{order,title,url,memo}] }
+ */
+function getLinks() {
+  var sheet = getOrCreateSheet(SHEET_LINKS);
+  var rows  = sheet.getDataRange().getValues();
+  if (rows.length <= 1) return { status: 'ok', links: [] };
+  var dataRows = rows.slice(1).filter(function(r) { return r[1] !== ''; });
+  var links = dataRows.map(function(r) {
+    return { order: r[0], title: String(r[1]), url: String(r[2]), memo: String(r[3] || '') };
+  });
+  links.sort(function(a,b){ return a.order - b.order; });
+  return { status: 'ok', links: links };
+}
+
+/**
+ * LINKSシートにリンク一覧を上書き保存
+ * links: [{title, url, memo}]（orderはindex+1で自動付与）
+ */
+function saveLinks(links) {
+  var sheet = getOrCreateSheet(SHEET_LINKS);
+  sheet.clearContents();
+  // ヘッダー
+  sheet.appendRow(['order','title','url','memo']);
+  var headerRange = sheet.getRange(1,1,1,4);
+  headerRange.setBackground('#1a1a2e').setFontColor('#c8a96e').setFontWeight('bold');
+  // データ
+  (links || []).forEach(function(link, i) {
+    sheet.appendRow([i+1, link.title || '', link.url || '', link.memo || '']);
+  });
+  return { status: 'ok' };
+}
+
+// ============================================================
 //  画像取得（Base64変換）
 // ============================================================
 
@@ -506,12 +568,15 @@ function getImages(params) {
   imageKeys.forEach(function(key, tradeIdx) {
     var urlStr = String(obj[key] || '');
     if (!urlStr) return;
-    var urls = urlStr.split('
-').map(function(u){ return u.trim(); }).filter(Boolean);
+    // 改行コード（\n、\r\n両方）で分割
+    var urls = urlStr.split(/\r?\n/).map(function(u){ return u.trim(); }).filter(Boolean);
     urls.forEach(function(url, imgIdx) {
       try {
         var fileId = extractFileId(url);
-        if (!fileId) return;
+        if (!fileId) {
+          result.push({ error: 'FileID抽出失敗: ' + url.substring(0, 80) });
+          return;
+        }
         var file = DriveApp.getFileById(fileId);
         var blob = file.getBlob();
         var base64 = Utilities.base64Encode(blob.getBytes());
@@ -523,12 +588,12 @@ function getImages(params) {
           name:     file.getName()
         });
       } catch(e) {
-        // ファイルアクセス失敗はスキップ
+        result.push({ error: 'ファイルアクセス失敗: ' + e.message });
       }
     });
   });
 
-  return { status: 'ok', images: result };
+  return { status: 'ok', images: result, debug: { date: date, foundRow: !!targetRow, headers: headers.join(',') } };
 }
 
 /**

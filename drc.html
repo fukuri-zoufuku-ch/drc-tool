@@ -634,6 +634,132 @@
     margin-top: 8px;
   }
 
+  /* ─── リンク集タブ ─── */
+  .links-wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 36px 32px 100px;
+  }
+  .links-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .link-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .link-card:hover {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+    transform: translateY(-1px);
+  }
+  .link-card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .link-card-url {
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .link-card-memo {
+    font-size: 13px;
+    color: var(--text-sub);
+    margin-top: 2px;
+    line-height: 1.5;
+  }
+  .links-empty {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+    padding: 60px 0;
+  }
+
+  /* ─── リンク設定（設定タブ内） ─── */
+  .link-setting-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: grab;
+    transition: border-color 0.15s;
+  }
+  .link-setting-item:active { cursor: grabbing; }
+  .link-setting-item.dragging {
+    opacity: 0.4;
+    border-color: var(--accent);
+  }
+  .link-setting-item.drag-over {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+  }
+  .link-drag-handle {
+    color: var(--text-muted);
+    font-size: 18px;
+    cursor: grab;
+    flex-shrink: 0;
+    user-select: none;
+  }
+  .link-setting-fields {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .link-setting-fields input {
+    font-size: 13px;
+    padding: 7px 10px;
+  }
+  .link-setting-fields input.full {
+    grid-column: 1 / -1;
+  }
+  .btn-link-del {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .btn-link-del:hover { border-color: var(--red); color: var(--red); }
+  .btn-add-link {
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius);
+    color: var(--text-sub);
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 4px;
+  }
+  .btn-add-link:hover { border-color: var(--accent); color: var(--accent); }
+
   /* ─── 説明タブ ─── */
   .guide-wrap {
     max-width: 860px;
@@ -951,6 +1077,7 @@
   <button class="tab" onclick="switchTab('monthly',this)">月次</button>
   <button class="tab" onclick="switchTab('yearly',this)">年間</button>
   <button class="tab" onclick="switchTab('tags',this)">タグ別</button>
+  <button class="tab" onclick="switchTab('links',this)">リンク集</button>
   <button class="tab" onclick="switchTab('settings',this)">設定</button>
   <button class="tab" onclick="switchTab('connect',this)">連携設定</button>
   <button class="tab" onclick="switchTab('guide',this)">使い方</button>
@@ -1398,6 +1525,17 @@
 </div>
 </div>
 
+<!-- ── リンク集タブ ── -->
+<div id="page-links" class="page">
+<div class="links-wrap">
+  <div class="page-title">リンク集</div>
+  <div class="page-sub" style="margin-bottom:24px;">プレイブック・相場情報など。設定タブから追加・並び替えができます</div>
+  <div class="links-grid" id="links-grid">
+    <div class="links-empty">リンクがまだありません。設定タブから追加してください。</div>
+  </div>
+</div>
+</div>
+
 <!-- ── 検索タブ（後で実装） ── -->
 <div id="page-search" class="page">
   <div class="coming-soon">
@@ -1434,11 +1572,19 @@
 <div id="page-settings" class="page">
 <div class="settings-wrap">
   <div class="page-title">設定</div>
-  <div class="page-sub" style="margin-bottom:28px;">タグのカテゴリ・項目を自由に編集できます</div>
+  <div class="page-sub" style="margin-bottom:28px;">タグ・リンク集・評価基準を管理します</div>
 
   <div id="settings-tag-categories"></div>
 
   <button class="btn-add-category" onclick="addTagCategory()">＋ カテゴリを追加</button>
+
+  <!-- リンク集管理 -->
+  <div style="margin-top:40px;margin-bottom:8px;">
+    <div style="font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px;">リンク集の管理</div>
+    <div style="font-size:14px;color:var(--text-sub);margin-bottom:20px;">最大50件。ドラッグで並び替えができます</div>
+    <div id="settings-links-list"></div>
+    <button class="btn-add-link" id="btn-add-link" onclick="addLink()">＋ リンクを追加</button>
+  </div>
 
   <div style="margin-top:40px;">
     <div class="page-sub" style="font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px;">評価基準（A〜F）の編集</div>
@@ -1664,6 +1810,135 @@
 </div>
 
 <script>
+// ── リンク集（GAS連携） ──
+let _linksCache = [];
+
+async function fetchLinks() {
+  if (!getGasUrl()) return;
+  try {
+    const res  = await fetch(getGasUrl() + '?action=getLinks');
+    const data = await res.json();
+    if (data.status === 'ok') {
+      _linksCache = data.links || [];
+      renderLinksPage();
+      renderLinksSettings();
+    }
+  } catch(e) { console.warn('リンク取得失敗:', e); }
+}
+
+async function pushLinks(links) {
+  _linksCache = links;
+  renderLinksPage();
+  renderLinksSettings();
+  if (!getGasUrl()) return;
+  try {
+    await gasPost({ action: 'saveLinks', links });
+  } catch(e) { console.warn('リンク保存失敗:', e); }
+}
+
+function renderLinksPage() {
+  const links = _linksCache;
+  const grid  = document.getElementById('links-grid');
+  if (!grid) return;
+  if (!links.length) {
+    grid.innerHTML = '<div class="links-empty">リンクがまだありません。設定タブから追加してください。</div>';
+    return;
+  }
+  grid.innerHTML = links.map((link, i) => `
+    <a class="link-card" href="${escHtml(link.url)}" target="_blank" rel="noopener">
+      <div class="link-card-title">${escHtml(link.title || '無題')}</div>
+      <div class="link-card-url">${escHtml(link.url)}</div>
+      ${link.memo ? `<div class="link-card-memo">${escHtml(link.memo)}</div>` : ''}
+    </a>
+  `).join('');
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderLinksSettings() {
+  const links  = _linksCache;
+  const list   = document.getElementById('settings-links-list');
+  const addBtn = document.getElementById('btn-add-link');
+  if (!list) return;
+  if (addBtn) addBtn.style.display = links.length >= 50 ? 'none' : 'block';
+  list.innerHTML = links.map((link, i) => `
+    <div class="link-setting-item" draggable="true"
+      ondragstart="onLinkDragStart(event,${i})"
+      ondragover="onLinkDragOver(event,${i})"
+      ondrop="onLinkDrop(event,${i})"
+      ondragleave="onLinkDragLeave(event)"
+      ondragend="onLinkDragEnd(event)"
+      data-idx="${i}">
+      <div class="link-drag-handle">⠿</div>
+      <div class="link-setting-fields">
+        <input type="text" placeholder="タイトル" value="${escHtml(link.title || '')}"
+          oninput="updateLinkField(${i},'title',this.value)" />
+        <input type="text" placeholder="URL (https://...)" value="${escHtml(link.url || '')}"
+          oninput="updateLinkField(${i},'url',this.value)" />
+        <input type="text" placeholder="メモ（任意）" value="${escHtml(link.memo || '')}"
+          oninput="updateLinkField(${i},'memo',this.value)" class="full" />
+      </div>
+      <button class="btn-link-del" onclick="deleteLink(${i})" title="削除">×</button>
+    </div>
+  `).join('');
+}
+
+function addLink() {
+  if (_linksCache.length >= 50) return;
+  const links = [..._linksCache, { title: '', url: '', memo: '' }];
+  pushLinks(links);
+}
+
+let _linkSaveTimer = null;
+function updateLinkField(idx, field, value) {
+  _linksCache[idx][field] = value;
+  renderLinksPage();
+  // 入力の都度GASに保存（300ms debounce）
+  clearTimeout(_linkSaveTimer);
+  _linkSaveTimer = setTimeout(() => {
+    if (getGasUrl()) gasPost({ action: 'saveLinks', links: _linksCache });
+  }, 300);
+}
+
+function deleteLink(idx) {
+  if (!confirm('このリンクを削除しますか？')) return;
+  const links = [..._linksCache];
+  links.splice(idx, 1);
+  pushLinks(links);
+}
+
+// ドラッグ&ドロップ
+let _dragIdx = null;
+function onLinkDragStart(e, idx) {
+  _dragIdx = idx;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function onLinkDragOver(e, idx) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('.link-setting-item').forEach(el => el.classList.remove('drag-over'));
+  e.currentTarget.classList.add('drag-over');
+}
+function onLinkDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+function onLinkDrop(e, idx) {
+  e.preventDefault();
+  if (_dragIdx === null || _dragIdx === idx) return;
+  const links = [..._linksCache];
+  const moved = links.splice(_dragIdx, 1)[0];
+  links.splice(idx, 0, moved);
+  _dragIdx = null;
+  pushLinks(links);
+}
+function onLinkDragEnd(e) {
+  _dragIdx = null;
+  document.querySelectorAll('.link-setting-item').forEach(el => {
+    el.classList.remove('dragging', 'drag-over');
+  });
+}
+
 // ── 評価基準（localStorageで管理） ──
 const DEFAULT_GRADE_CRITERIA = {
   A: {
@@ -1792,6 +2067,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderSettingsPage();
   renderConnectPage();
   rebuildTooltips();
+  await fetchLinks();
 
   if (!getGasUrl()) {
     updateGasStatus('demo');
@@ -2039,7 +2315,8 @@ function switchTab(name, el) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   if (el) el.classList.add('active');
   document.getElementById('page-' + name).classList.add('active');
-  if (name === 'settings') { renderSettingsPage(); renderGradeCriteriaUI(); }
+  if (name === 'links') { renderLinksPage(); if (!_linksCache.length) fetchLinks(); }
+  if (name === 'settings') { renderSettingsPage(); renderLinksSettings(); renderGradeCriteriaUI(); }
   if (name === 'connect') renderConnectPage();
 }
 
