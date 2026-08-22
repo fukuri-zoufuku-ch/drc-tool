@@ -834,6 +834,88 @@
   }
   .detail-jump-btn:hover { opacity: 0.88; }
 
+  /* ─── 検索タグ選択 ─── */
+  .search-tag-dropdown {
+    position: relative;
+  }
+  .search-tag-selected {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 16px;
+    padding: 12px 14px;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .search-tag-selected:focus { outline: none; border-color: var(--accent); }
+  .search-tag-selected-text { flex: 1; color: var(--text); }
+  .search-tag-selected-text.placeholder { color: var(--text-muted); }
+  .search-tag-panel {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: var(--surface-2);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    z-index: 100;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 8px;
+  }
+  .search-tag-panel.open { display: block; }
+  .search-tag-clear {
+    width: 100%;
+    padding: 8px 12px;
+    background: transparent;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    font-size: 13px;
+    cursor: pointer;
+    margin-bottom: 8px;
+    font-family: inherit;
+    transition: all 0.15s;
+    text-align: left;
+  }
+  .search-tag-clear:hover { color: var(--text); border-color: var(--border-strong); }
+  .search-tag-cat-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 6px 8px 4px;
+  }
+  .search-tag-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 0 4px 8px;
+  }
+  .search-tag-chip {
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface-3);
+    color: var(--text-sub);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .search-tag-chip:hover { border-color: var(--border-strong); color: var(--text); }
+  .search-tag-chip.selected { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
   /* ─── タグ設定ドラッグ ─── */
   .settings-category.drag-over {
     border-color: var(--accent);
@@ -1774,7 +1856,17 @@
       </div>
       <div class="field">
         <label>タグ</label>
-        <input type="text" id="search-tag" placeholder="例：リベンジトレード" />
+        <div class="search-tag-dropdown" id="search-tag-dropdown">
+          <button class="search-tag-selected" onclick="toggleSearchTagPanel()" type="button">
+            <span class="search-tag-selected-text placeholder" id="search-tag-display">選択してください</span>
+            <span style="color:var(--text-muted);font-size:12px;">▼</span>
+          </button>
+          <div class="search-tag-panel" id="search-tag-panel">
+            <button class="search-tag-clear" onclick="clearSearchTag()">× 選択解除</button>
+            <div id="search-tag-panel-content"></div>
+          </div>
+        </div>
+        <input type="hidden" id="search-tag" />
       </div>
     </div>
     <div class="search-filter-row">
@@ -3211,6 +3303,56 @@ async function submitDRC() {
 
 // ── 検索タブ ──
 const _searchGrades = new Set();
+
+// ── 検索タグドロップダウン ──
+function toggleSearchTagPanel() {
+  const panel = document.getElementById('search-tag-panel');
+  if (panel.classList.contains('open')) {
+    panel.classList.remove('open');
+  } else {
+    renderSearchTagPanel();
+    panel.classList.add('open');
+  }
+}
+
+function renderSearchTagPanel() {
+  const master  = getTagMaster();
+  const current = document.getElementById('search-tag').value;
+  const el      = document.getElementById('search-tag-panel-content');
+  if (!el) return;
+  el.innerHTML = master.map(cat => `
+    <div class="search-tag-cat-label">${cat.name}</div>
+    <div class="search-tag-chip-list">
+      ${cat.tags.map(tag => `
+        <div class="search-tag-chip ${tag === current ? 'selected' : ''}"
+          onclick="selectSearchTag('${tag}')">${tag}</div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+function selectSearchTag(tag) {
+  document.getElementById('search-tag').value = tag;
+  document.getElementById('search-tag-display').textContent = tag;
+  document.getElementById('search-tag-display').classList.remove('placeholder');
+  document.getElementById('search-tag-panel').classList.remove('open');
+}
+
+function clearSearchTag() {
+  document.getElementById('search-tag').value = '';
+  document.getElementById('search-tag-display').textContent = '選択してください';
+  document.getElementById('search-tag-display').classList.add('placeholder');
+  document.getElementById('search-tag-panel').classList.remove('open');
+}
+
+// パネル外クリックで閉じる
+document.addEventListener('click', e => {
+  const dropdown = document.getElementById('search-tag-dropdown');
+  if (dropdown && !dropdown.contains(e.target)) {
+    const panel = document.getElementById('search-tag-panel');
+    if (panel) panel.classList.remove('open');
+  }
+});
 
 function initSearchTab() {
   // 日付の初期値を当月に設定
