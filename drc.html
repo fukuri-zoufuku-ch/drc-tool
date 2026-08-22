@@ -2173,6 +2173,7 @@ async function loadDRCByDate(date) {
       fillForm(data.records[0]);
       showStatus('★ ' + date + ' のデータを読み込みました（編集・上書き保存できます）', 'success');
       showDeleteBtn(true);
+      await loadAndRenderImages(date);
     } else {
       clearForm(date);
       showStatus('', '');
@@ -2270,9 +2271,6 @@ function fillForm(r) {
   document.getElementById('mantra-today').value    = v('今日の言葉');
   document.getElementById('mantra-tomorrow').value = v('明日への言葉');
 
-  // 画像をGASから取得して表示（非同期）
-  const dateVal = document.getElementById('date').value;
-  if (dateVal) loadAndRenderImages(dateVal);
 }
 
 // フォームを全クリア
