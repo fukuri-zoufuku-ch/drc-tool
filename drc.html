@@ -634,6 +634,206 @@
     margin-top: 8px;
   }
 
+  /* ─── 検索タブ ─── */
+  .search-wrap {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 36px 32px 100px;
+  }
+  .search-filter-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px 28px;
+    margin-bottom: 20px;
+  }
+  .search-filter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .search-filter-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .search-grade-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .search-grade-chip {
+    width: 42px;
+    height: 42px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-sub);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .search-grade-chip:hover { border-color: var(--border-strong); color: var(--text); }
+  .search-grade-chip.sel-A { background:rgba(76,175,125,0.2);border-color:#4caf7d;color:#4caf7d; }
+  .search-grade-chip.sel-B { background:rgba(91,191,138,0.15);border-color:#5bbf8a;color:#5bbf8a; }
+  .search-grade-chip.sel-C { background:var(--accent-dim);border-color:var(--accent);color:var(--accent); }
+  .search-grade-chip.sel-D { background:rgba(220,130,80,0.2);border-color:#dc8250;color:#dc8250; }
+  .search-grade-chip.sel-E { background:var(--red-dim);border-color:var(--red);color:var(--red); }
+  .search-grade-chip.sel-F { background:rgba(180,50,50,0.2);border-color:#b43232;color:#b43232; }
+  .btn-search {
+    width: 100%;
+    padding: 13px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: opacity 0.15s;
+  }
+  .btn-search:hover { opacity: 0.88; }
+  .btn-search:disabled { opacity: 0.4; cursor: not-allowed; }
+  .search-summary {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 14px 20px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 14px;
+    font-size: 14px;
+    color: var(--text-sub);
+  }
+  .search-summary-val {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .search-summary-val.positive { color: var(--green); }
+  .search-summary-val.negative { color: var(--red); }
+  .search-result-list { display: flex; flex-direction: column; gap: 8px; }
+  .search-result-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: grid;
+    grid-template-columns: 100px 60px 120px 1fr auto;
+    align-items: center;
+    gap: 16px;
+  }
+  .search-result-item:hover { border-color: var(--accent); background: var(--accent-dim); }
+  .search-result-date { font-size: 15px; font-weight: 600; color: var(--text); }
+  .search-result-grade {
+    font-size: 18px;
+    font-weight: 700;
+    text-align: center;
+  }
+  .search-result-pnl { font-size: 15px; font-weight: 600; text-align: right; }
+  .search-result-pnl.positive { color: var(--green); }
+  .search-result-pnl.negative { color: var(--red); }
+  .search-result-tickers { font-size: 13px; color: var(--text-sub); }
+  .search-result-arrow { color: var(--text-muted); font-size: 18px; }
+
+  /* 詳細モーダル */
+  .search-detail-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 500;
+    overflow-y: auto;
+    padding: 40px 20px;
+  }
+  .search-detail-overlay.open { display: block; }
+  .search-detail-modal {
+    max-width: 800px;
+    margin: 0 auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    position: relative;
+  }
+  .search-detail-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-sub);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .search-detail-close:hover { border-color: var(--red); color: var(--red); }
+  .detail-section {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .detail-section:last-child { border-bottom: none; margin-bottom: 0; }
+  .detail-section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 10px;
+  }
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .detail-item label {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+  }
+  .detail-item-val {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.6;
+    white-space: pre-wrap;
+  }
+  .detail-jump-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: opacity 0.15s;
+    margin-top: 16px;
+  }
+  .detail-jump-btn:hover { opacity: 0.88; }
+
   /* ─── タグ設定ドラッグ ─── */
   .settings-category.drag-over {
     border-color: var(--accent);
@@ -1557,10 +1757,69 @@
 
 <!-- ── 検索タブ（後で実装） ── -->
 <div id="page-search" class="page">
-  <div class="coming-soon">
-    <h2>検索・閲覧</h2>
-    <p>次のステップで実装します</p>
+<div class="search-wrap">
+  <div class="page-title">検索・閲覧</div>
+  <div class="page-sub" style="margin-bottom:24px;">条件を指定してDRCを検索します</div>
+
+  <!-- フィルター -->
+  <div class="search-filter-card">
+    <div class="search-filter-grid">
+      <div class="field">
+        <label>日付（開始）</label>
+        <input type="date" id="search-date-from" />
+      </div>
+      <div class="field">
+        <label>日付（終了）</label>
+        <input type="date" id="search-date-to" />
+      </div>
+      <div class="field">
+        <label>タグ</label>
+        <input type="text" id="search-tag" placeholder="例：リベンジトレード" />
+      </div>
+    </div>
+    <div class="search-filter-row">
+      <div class="field">
+        <label>P&amp;L（最小）</label>
+        <input type="number" id="search-pnl-min" placeholder="例：-100000" />
+      </div>
+      <div class="field">
+        <label>P&amp;L（最大）</label>
+        <input type="number" id="search-pnl-max" placeholder="例：100000" />
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:16px;">
+      <label>総合評価（複数選択可）</label>
+      <div class="search-grade-group" id="search-grade-group">
+        <div class="search-grade-chip" data-grade="A" onclick="toggleSearchGrade(this)">A</div>
+        <div class="search-grade-chip" data-grade="B" onclick="toggleSearchGrade(this)">B</div>
+        <div class="search-grade-chip" data-grade="C" onclick="toggleSearchGrade(this)">C</div>
+        <div class="search-grade-chip" data-grade="D" onclick="toggleSearchGrade(this)">D</div>
+        <div class="search-grade-chip" data-grade="E" onclick="toggleSearchGrade(this)">E</div>
+        <div class="search-grade-chip" data-grade="F" onclick="toggleSearchGrade(this)">F</div>
+      </div>
+    </div>
+    <button class="btn-search" id="btn-search" onclick="executeSearch()">検索する</button>
   </div>
+
+  <!-- 検索結果サマリー -->
+  <div class="search-summary" id="search-summary" style="display:none;">
+    <div>件数：<span class="search-summary-val" id="summary-count">0</span> 件</div>
+    <div>合計P&amp;L：<span class="search-summary-val" id="summary-pnl">¥0</span></div>
+    <div>平均P&amp;L：<span class="search-summary-val" id="summary-avg">¥0</span></div>
+    <div>勝率：<span class="search-summary-val" id="summary-winrate">0%</span></div>
+  </div>
+
+  <!-- 検索結果一覧 -->
+  <div class="search-result-list" id="search-result-list"></div>
+</div>
+
+<!-- 詳細モーダル -->
+<div class="search-detail-overlay" id="search-detail-overlay" onclick="closeDetail(event)">
+  <div class="search-detail-modal">
+    <button class="search-detail-close" onclick="closeDetailModal()">×</button>
+    <div id="search-detail-content"></div>
+  </div>
+</div>
 </div>
 
 <!-- ── 月次タブ ── -->
@@ -2334,6 +2593,7 @@ function switchTab(name, el) {
   if (el) el.classList.add('active');
   document.getElementById('page-' + name).classList.add('active');
   if (name === 'links') { renderLinksPage(); if (!_linksCache.length) fetchLinks(); }
+  if (name === 'search') initSearchTab();
   if (name === 'settings') { renderSettingsPage(); renderLinksSettings(); renderGradeCriteriaUI(); }
   if (name === 'connect') renderConnectPage();
 }
@@ -2947,6 +3207,232 @@ async function submitDRC() {
     updateGasStatus('error');
   }
   btn.disabled = false;
+}
+
+// ── 検索タブ ──
+const _searchGrades = new Set();
+
+function initSearchTab() {
+  // 日付の初期値を当月に設定
+  const now  = new Date();
+  const from = document.getElementById('search-date-from');
+  const to   = document.getElementById('search-date-to');
+  if (!from.value) {
+    const y = now.getFullYear(), m = String(now.getMonth()+1).padStart(2,'0');
+    from.value = y + '-' + m + '-01';
+    to.value   = document.getElementById('date').value || now.toISOString().split('T')[0];
+  }
+}
+
+function toggleSearchGrade(el) {
+  const g = el.dataset.grade;
+  el.classList.toggle('sel-' + g);
+  if (_searchGrades.has(g)) _searchGrades.delete(g);
+  else _searchGrades.add(g);
+}
+
+async function executeSearch() {
+  if (!getGasUrl()) { alert('GASが接続されていません。連携設定タブで設定してください。'); return; }
+  const btn = document.getElementById('btn-search');
+  btn.disabled = true;
+  btn.textContent = '検索中...';
+
+  const params = new URLSearchParams({
+    action:   'getDRC',
+    dateFrom: document.getElementById('search-date-from').value,
+    dateTo:   document.getElementById('search-date-to').value,
+    tag:      document.getElementById('search-tag').value.trim(),
+    grade:    Array.from(_searchGrades).join(','),
+    limit:    '200'
+  });
+  const pnlMin = document.getElementById('search-pnl-min').value;
+  const pnlMax = document.getElementById('search-pnl-max').value;
+  if (pnlMin) params.append('pnlMin', pnlMin);
+  if (pnlMax) params.append('pnlMax', pnlMax);
+
+  try {
+    const res  = await fetch(getGasUrl() + '?' + params.toString());
+    const data = await res.json();
+    if (data.status === 'ok') {
+      renderSearchResults(data.records || []);
+    } else {
+      alert('検索エラー: ' + (data.message || ''));
+    }
+  } catch(e) {
+    alert('通信エラー: ' + e.message);
+  }
+  btn.disabled = false;
+  btn.textContent = '検索する';
+}
+
+function renderSearchResults(records) {
+  const list    = document.getElementById('search-result-list');
+  const summary = document.getElementById('search-summary');
+
+  // サマリー計算
+  const totalPnl = records.reduce((s, r) => s + (Number(r['P&L']) || 0), 0);
+  const wins     = records.filter(r => (Number(r['P&L']) || 0) > 0).length;
+  const winRate  = records.length ? Math.round(wins / records.length * 100) : 0;
+  const avgPnl   = records.length ? Math.round(totalPnl / records.length) : 0;
+
+  document.getElementById('summary-count').textContent = records.length;
+  const pnlEl = document.getElementById('summary-pnl');
+  pnlEl.textContent = formatPnl(totalPnl);
+  pnlEl.className = 'search-summary-val ' + (totalPnl >= 0 ? 'positive' : 'negative');
+  const avgEl = document.getElementById('summary-avg');
+  avgEl.textContent = formatPnl(avgPnl);
+  avgEl.className = 'search-summary-val ' + (avgPnl >= 0 ? 'positive' : 'negative');
+  document.getElementById('summary-winrate').textContent = winRate + '%';
+  summary.style.display = records.length ? 'flex' : 'none';
+
+  if (!records.length) {
+    list.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:40px;font-size:14px;">該当するデータがありません</div>';
+    return;
+  }
+
+  const gradeColors = { A:'#4caf7d', B:'#5bbf8a', C:'var(--accent)', D:'#dc8250', E:'var(--red)', F:'#b43232' };
+  list.innerHTML = records.map((r, i) => {
+    const pnl     = Number(r['P&L']) || 0;
+    const grade   = r['総合評価'] || '-';
+    const tickers = ['銘柄①','銘柄②','銘柄③','銘柄④','銘柄⑤']
+      .map(k => r[k]).filter(Boolean).join('・');
+    return `
+      <div class="search-result-item" onclick="openDetail(${i})">
+        <div class="search-result-date">${r['日付'] || ''}</div>
+        <div class="search-result-grade" style="color:${gradeColors[grade] || 'var(--text-sub)'};">${grade}</div>
+        <div class="search-result-pnl ${pnl >= 0 ? 'positive' : 'negative'}">${formatPnl(pnl)}</div>
+        <div class="search-result-tickers">${tickers || '銘柄なし'}</div>
+        <div class="search-result-arrow">›</div>
+      </div>
+    `;
+  }).join('');
+
+  // 検索結果をキャッシュ
+  window._searchResults = records;
+}
+
+function formatPnl(val) {
+  const n = Number(val) || 0;
+  const abs = Math.abs(n).toLocaleString();
+  return (n >= 0 ? '+¥' : '▲¥') + abs;
+}
+
+function openDetail(idx) {
+  const r = window._searchResults[idx];
+  if (!r) return;
+  const gradeColors = { A:'#4caf7d', B:'#5bbf8a', C:'var(--accent)', D:'#dc8250', E:'var(--red)', F:'#b43232' };
+  const grade = r['総合評価'] || '-';
+  const pnl   = Number(r['P&L']) || 0;
+
+  const trades = [1,2,3,4,5].map(n => {
+    const ticker = r['銘柄' + ['①','②','③','④','⑤'][n-1]];
+    if (!ticker) return '';
+    const tpnl  = Number(r['損益' + ['①','②','③','④','⑤'][n-1]]) || 0;
+    const tags  = r['タグ' + ['①','②','③','④','⑤'][n-1]] || '';
+    const analysis = r['分析' + ['①','②','③','④','⑤'][n-1]] || '';
+    return `
+      <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span style="font-size:15px;font-weight:600;color:var(--text);">${ticker}</span>
+          <span style="font-size:14px;font-weight:600;color:${tpnl>=0?'var(--green)':'var(--red)'};">${formatPnl(tpnl)}</span>
+        </div>
+        ${tags ? `<div style="font-size:12px;color:var(--accent);margin-bottom:6px;">${tags}</div>` : ''}
+        ${analysis ? `<div style="font-size:13px;color:var(--text-sub);white-space:pre-wrap;">${analysis}</div>` : ''}
+      </div>`;
+  }).filter(Boolean).join('');
+
+  const fomoItems = [
+    ['心配・不安', r['FOMO_心配不安']],
+    ['SNS気になる', r['FOMO_SNS']],
+    ['手放した銘柄', r['FOMO_手放した銘柄']],
+    ['衝動', r['FOMO_衝動']],
+    ['深呼吸できた', r['FOMO_深呼吸']],
+  ].map(([label, val]) =>
+    `<span style="padding:3px 10px;border-radius:12px;font-size:12px;margin-right:6px;
+      background:${(val===true||val==='TRUE')?'var(--accent-dim)':'var(--surface-3)'};
+      color:${(val===true||val==='TRUE')?'var(--accent)':'var(--text-muted)'};
+      border:1px solid ${(val===true||val==='TRUE')?'rgba(200,169,110,0.3)':'var(--border)'};">
+      ${label}</span>`
+  ).join('');
+
+  document.getElementById('search-detail-content').innerHTML = `
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;">
+      <div style="font-size:28px;font-weight:700;color:${gradeColors[grade]||'var(--text)'};">${grade}</div>
+      <div>
+        <div style="font-size:20px;font-weight:600;color:var(--text);">${r['日付'] || ''}</div>
+        <div style="font-size:18px;font-weight:600;color:${pnl>=0?'var(--green)':'var(--red)'};">${formatPnl(pnl)}</div>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title">コンディション</div>
+      <div class="detail-grid">
+        <div class="detail-item"><label>朝の気分</label><div class="detail-item-val">${r['朝の気分'] || '-'} / 10</div></div>
+        <div class="detail-item"><label>睡眠の質</label><div class="detail-item-val">${r['睡眠の質'] || '-'} / 10</div></div>
+        ${r['コンディションメモ'] ? `<div class="detail-item" style="grid-column:1/-1"><label>メモ</label><div class="detail-item-val">${r['コンディションメモ']}</div></div>` : ''}
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title">FOMOチェック</div>
+      <div>${fomoItems}</div>
+      ${r['FOMO自由記述'] ? `<div style="font-size:13px;color:var(--text-sub);margin-top:10px;white-space:pre-wrap;">${r['FOMO自由記述']}</div>` : ''}
+    </div>
+
+    ${r['プロセス目標'] ? `
+    <div class="detail-section">
+      <div class="detail-section-title">プロセス目標</div>
+      <div class="detail-item-val">${r['プロセス目標']}</div>
+    </div>` : ''}
+
+    <div class="detail-section">
+      <div class="detail-section-title">時間帯別評価</div>
+      <div class="detail-grid">
+        <div class="detail-item"><label>前場</label><div class="detail-item-val" style="color:${gradeColors[r['前場評価']]||'var(--text)'};">${r['前場評価']||'-'} ${r['前場コメント']?'— '+r['前場コメント']:''}</div></div>
+        <div class="detail-item"><label>後場</label><div class="detail-item-val" style="color:${gradeColors[r['後場評価']]||'var(--text)'};">${r['後場評価']||'-'} ${r['後場コメント']?'— '+r['後場コメント']:''}</div></div>
+      </div>
+    </div>
+
+    ${trades ? `
+    <div class="detail-section">
+      <div class="detail-section-title">トレード記録</div>
+      ${trades}
+    </div>` : ''}
+
+    <div class="detail-section">
+      <div class="detail-section-title">プレイバック</div>
+      ${[['気づき','気づき'],['良かった点','良かった点'],['悪かった点','悪かった点'],['感情の動き','感情の動きと対処法'],['今日から対応','今日から対応']].map(([key,label]) =>
+        r[key] ? `<div class="detail-item" style="margin-bottom:10px;"><label>${label}</label><div class="detail-item-val">${r[key]}</div></div>` : ''
+      ).join('')}
+    </div>
+
+    ${(r['今日の言葉']||r['明日への言葉']) ? `
+    <div class="detail-section">
+      <div class="detail-section-title">マントラ</div>
+      ${r['今日の言葉'] ? `<div class="detail-item" style="margin-bottom:10px;"><label>今日の自分へ</label><div class="detail-item-val">${r['今日の言葉']}</div></div>` : ''}
+      ${r['明日への言葉'] ? `<div class="detail-item"><label>明日の自分へ</label><div class="detail-item-val">${r['明日への言葉']}</div></div>` : ''}
+    </div>` : ''}
+
+    <button class="detail-jump-btn" onclick="jumpToDate('${r['日付']}')">
+      この日の入力画面を開く →
+    </button>
+  `;
+  document.getElementById('search-detail-overlay').classList.add('open');
+}
+
+function closeDetail(e) {
+  if (e.target === document.getElementById('search-detail-overlay')) closeDetailModal();
+}
+function closeDetailModal() {
+  document.getElementById('search-detail-overlay').classList.remove('open');
+}
+
+function jumpToDate(date) {
+  closeDetailModal();
+  document.getElementById('date').value = date;
+  updateDateDisplay();
+  loadDRCByDate(date);
+  switchTab('input', document.querySelector('.tab'));
 }
 
 // GASへのPOST送信（CORS対策：form形式で送信）
