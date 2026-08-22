@@ -634,6 +634,25 @@
     margin-top: 8px;
   }
 
+  /* ─── タグ設定ドラッグ ─── */
+  .settings-category.drag-over {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+  }
+  .settings-category.dragging { opacity: 0.4; }
+  .tag-drag-handle {
+    color: var(--text-muted);
+    font-size: 18px;
+    cursor: grab;
+    margin-right: 8px;
+    user-select: none;
+  }
+  .settings-tag.dragging { opacity: 0.4; }
+  .settings-tag.drag-over {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+  }
+
   /* ─── リンク集タブ ─── */
   .links-wrap {
     max-width: 860px;
@@ -2471,16 +2490,30 @@ function renderSettingsPage() {
   master.forEach((cat, ci) => {
     const div = document.createElement('div');
     div.className = 'settings-category';
+    div.setAttribute('draggable', 'true');
+    div.dataset.ci = ci;
+    div.addEventListener('dragstart', e => onCatDragStart(e, ci));
+    div.addEventListener('dragover',  e => onCatDragOver(e, ci));
+    div.addEventListener('drop',      e => onCatDrop(e, ci));
+    div.addEventListener('dragleave', e => e.currentTarget.classList.remove('drag-over'));
+    div.addEventListener('dragend',   e => { e.currentTarget.classList.remove('dragging','drag-over'); });
     div.innerHTML = `
       <div class="settings-category-header">
         <div class="settings-category-name">
+          <span class="tag-drag-handle" title="ドラッグで並び替え">⠿</span>
           <input type="text" value="${cat.name}" onchange="renameCat(${ci}, this.value)" />
         </div>
         <button class="btn-del-cat" onclick="deleteCategory(${ci})">カテゴリを削除</button>
       </div>
       <div class="settings-tags" id="settings-tags-${ci}">
         ${cat.tags.map((tag, ti) => `
-          <div class="settings-tag">
+          <div class="settings-tag" draggable="true"
+            ondragstart="onTagDragStart(event,${ci},${ti})"
+            ondragover="onTagDragOver(event,${ci},${ti})"
+            ondrop="onTagDrop(event,${ci},${ti})"
+            ondragleave="this.classList.remove('drag-over')"
+            ondragend="this.classList.remove('dragging','drag-over')">
+            <span style="cursor:grab;color:var(--text-muted);margin-right:4px;font-size:12px;">⠿</span>
             <span>${tag}</span>
             <button class="settings-tag-del" onclick="deleteTag(${ci},${ti})" title="削除">×</button>
           </div>`).join('')}
@@ -2492,6 +2525,63 @@ function renderSettingsPage() {
     `;
     container.appendChild(div);
   });
+}
+
+// カテゴリのドラッグ&ドロップ
+let _catDragIdx = null;
+function onCatDragStart(e, ci) {
+  _catDragIdx = ci;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function onCatDragOver(e, ci) {
+  e.preventDefault();
+  document.querySelectorAll('.settings-category').forEach(el => el.classList.remove('drag-over'));
+  e.currentTarget.classList.add('drag-over');
+}
+function onCatDrop(e, ci) {
+  e.preventDefault();
+  if (_catDragIdx === null || _catDragIdx === ci) return;
+  const master = getTagMaster();
+  const moved = master.splice(_catDragIdx, 1)[0];
+  master.splice(ci, 0, moved);
+  _catDragIdx = null;
+  pushTagMaster(master);
+  renderSettingsPage();
+}
+
+// タグのドラッグ&ドロップ
+let _tagDrag = null;
+function onTagDragStart(e, ci, ti) {
+  _tagDrag = { ci, ti };
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.stopPropagation();
+}
+function onTagDragOver(e, ci, ti) {
+  e.preventDefault();
+  e.stopPropagation();
+  document.querySelectorAll('.settings-tag').forEach(el => el.classList.remove('drag-over'));
+  e.currentTarget.classList.add('drag-over');
+}
+function onTagDrop(e, ci, ti) {
+  e.preventDefault();
+  e.stopPropagation();
+  if (!_tagDrag || (_tagDrag.ci === ci && _tagDrag.ti === ti)) return;
+  const master = getTagMaster();
+  // 同カテゴリ内の並び替え
+  if (_tagDrag.ci === ci) {
+    const tags = master[ci].tags;
+    const moved = tags.splice(_tagDrag.ti, 1)[0];
+    tags.splice(ti, 0, moved);
+  } else {
+    // カテゴリをまたぐ移動
+    const tag = master[_tagDrag.ci].tags.splice(_tagDrag.ti, 1)[0];
+    master[ci].tags.splice(ti, 0, tag);
+  }
+  _tagDrag = null;
+  pushTagMaster(master);
+  renderSettingsPage();
 }
 
 // 評価基準UIの描画
@@ -2752,7 +2842,7 @@ function collectFormData() {
     const analysis = document.getElementById('trade-analysis-' + i).value.trim();
     const chartNote = document.getElementById('trade-chart-note-' + i).value.trim();
     if (ticker || pnl || analysis) {
-      trades.push({ ticker, pnl: pnl ? parseInt(pnl) : null, analysis, chartNote, images: state.tradeImages[i] });
+      trades.push({ ticker, pnl: pnl ? parseInt(pnl) : null, analysis, chartNote, images: state.tradeImages[i], tags: Array.from(state.tradeTags[i]).join(',') });
     }
   }
 
