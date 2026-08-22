@@ -2173,7 +2173,8 @@ async function loadDRCByDate(date) {
       fillForm(data.records[0]);
       showStatus('★ ' + date + ' のデータを読み込みました（編集・上書き保存できます）', 'success');
       showDeleteBtn(true);
-      await loadAndRenderImages(date);
+      // 画像は非同期で並行取得（テキスト表示後にバックグラウンドで読み込む）
+      loadAndRenderImages(date);
     } else {
       clearForm(date);
       showStatus('', '');
