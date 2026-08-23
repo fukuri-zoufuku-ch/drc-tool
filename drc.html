@@ -834,6 +834,151 @@
   }
   .detail-jump-btn:hover { opacity: 0.88; }
 
+  /* ─── 月次タブ ─── */
+  .monthly-wrap {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 36px 32px 100px;
+  }
+  .monthly-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .monthly-nav-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-sub);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .monthly-nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .monthly-title { font-size: 24px; font-weight: 700; color: var(--text); min-width: 160px; text-align: center; }
+  .monthly-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .monthly-summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+  }
+  .monthly-summary-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+  }
+  .monthly-summary-val {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .monthly-summary-val.positive { color: var(--green); }
+  .monthly-summary-val.negative { color: var(--red); }
+  .monthly-chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+  .monthly-chart-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-sub);
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .monthly-bar-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 160px;
+    padding: 0 4px;
+  }
+  .monthly-bar-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    position: relative;
+    gap: 4px;
+    justify-content: flex-end;
+  }
+  .monthly-bar {
+    width: 100%;
+    min-height: 2px;
+    border-radius: 3px 3px 0 0;
+    transition: opacity 0.15s;
+    cursor: pointer;
+  }
+  .monthly-bar:hover { opacity: 0.8; }
+  .monthly-bar.positive { background: var(--green); }
+  .monthly-bar.negative { background: var(--red); border-radius: 0 0 3px 3px; }
+  .monthly-bar-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-align: center;
+    white-space: nowrap;
+  }
+  .monthly-grade-dist {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .monthly-grade-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    border: 1px solid;
+  }
+  .monthly-day-list { display: flex; flex-direction: column; gap: 6px; }
+  .monthly-day-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 18px;
+    display: grid;
+    grid-template-columns: 90px 50px 110px 1fr;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .monthly-day-item:hover { border-color: var(--accent); background: var(--accent-dim); }
+  .monthly-day-date { font-size: 14px; font-weight: 600; color: var(--text); }
+  .monthly-day-grade { font-size: 16px; font-weight: 700; text-align: center; }
+  .monthly-day-pnl { font-size: 14px; font-weight: 600; text-align: right; }
+  .monthly-day-pnl.positive { color: var(--green); }
+  .monthly-day-pnl.negative { color: var(--red); }
+  .monthly-day-tickers { font-size: 13px; color: var(--text-sub); }
+  .monthly-empty {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+    padding: 60px 0;
+  }
+
   /* ─── 検索タグ選択 ─── */
   .search-tag-dropdown {
     position: relative;
@@ -1916,10 +2061,55 @@
 
 <!-- ── 月次タブ ── -->
 <div id="page-monthly" class="page">
-  <div class="coming-soon">
-    <h2>月次サマリー</h2>
-    <p>次のステップで実装します</p>
+<div class="monthly-wrap">
+
+  <!-- ヘッダー：月ナビ -->
+  <div class="monthly-header">
+    <button class="monthly-nav-btn" onclick="changeMonth(-1)">‹</button>
+    <div class="monthly-title" id="monthly-title">----年--月</div>
+    <button class="monthly-nav-btn" onclick="changeMonth(1)">›</button>
+    <button class="monthly-nav-btn" style="margin-left:8px;font-size:13px;width:auto;padding:0 12px;border-radius:var(--radius);" onclick="goToCurrentMonth()">今月</button>
   </div>
+
+  <!-- サマリーカード -->
+  <div class="monthly-summary-grid" id="monthly-summary-grid">
+    <div class="monthly-summary-card">
+      <div class="monthly-summary-label">合計 P&amp;L</div>
+      <div class="monthly-summary-val" id="m-total-pnl">--</div>
+    </div>
+    <div class="monthly-summary-card">
+      <div class="monthly-summary-label">勝率</div>
+      <div class="monthly-summary-val" id="m-winrate">--%</div>
+    </div>
+    <div class="monthly-summary-card">
+      <div class="monthly-summary-label">勝ち日 / 負け日</div>
+      <div class="monthly-summary-val" id="m-winloss">-- / --</div>
+    </div>
+    <div class="monthly-summary-card">
+      <div class="monthly-summary-label">トレード日数</div>
+      <div class="monthly-summary-val" id="m-days">--</div>
+    </div>
+  </div>
+
+  <!-- P&Lバーチャート -->
+  <div class="monthly-chart-card">
+    <div class="monthly-chart-title">日別 P&amp;L</div>
+    <div class="monthly-bar-chart" id="monthly-bar-chart"></div>
+  </div>
+
+  <!-- 評価分布 -->
+  <div class="monthly-chart-card">
+    <div class="monthly-chart-title">評価分布</div>
+    <div class="monthly-grade-dist" id="monthly-grade-dist"></div>
+  </div>
+
+  <!-- 日別一覧 -->
+  <div class="monthly-chart-card">
+    <div class="monthly-chart-title">日別一覧</div>
+    <div class="monthly-day-list" id="monthly-day-list"></div>
+  </div>
+
+</div>
 </div>
 
 <!-- ── 年間タブ ── -->
@@ -2686,6 +2876,7 @@ function switchTab(name, el) {
   document.getElementById('page-' + name).classList.add('active');
   if (name === 'links') { renderLinksPage(); if (!_linksCache.length) fetchLinks(); }
   if (name === 'search') initSearchTab();
+  if (name === 'monthly') loadMonthlyData();
   if (name === 'settings') { renderSettingsPage(); renderLinksSettings(); renderGradeCriteriaUI(); }
   if (name === 'connect') renderConnectPage();
 }
@@ -3299,6 +3490,119 @@ async function submitDRC() {
     updateGasStatus('error');
   }
   btn.disabled = false;
+}
+
+// ── 月次タブ ──
+let _monthlyYear  = new Date().getFullYear();
+let _monthlyMonth = new Date().getMonth() + 1;
+let _monthlyData  = [];
+
+async function loadMonthlyData() {
+  if (!getGasUrl()) return;
+  const y  = _monthlyYear;
+  const m  = String(_monthlyMonth).padStart(2,'0');
+  const from = y + '-' + m + '-01';
+  const lastDay = new Date(y, _monthlyMonth, 0).getDate();
+  const to   = y + '-' + m + '-' + String(lastDay).padStart(2,'0');
+
+  document.getElementById('monthly-title').textContent = y + '年' + _monthlyMonth + '月';
+
+  try {
+    const res  = await fetch(getGasUrl() + '?action=getDRC&dateFrom=' + from + '&dateTo=' + to + '&limit=31');
+    const data = await res.json();
+    if (data.status === 'ok') {
+      _monthlyData = (data.records || []).reverse(); // 古い順
+      renderMonthly();
+    }
+  } catch(e) { console.warn('月次データ取得失敗:', e); }
+}
+
+function changeMonth(delta) {
+  _monthlyMonth += delta;
+  if (_monthlyMonth > 12) { _monthlyMonth = 1;  _monthlyYear++; }
+  if (_monthlyMonth < 1)  { _monthlyMonth = 12; _monthlyYear--; }
+  loadMonthlyData();
+}
+
+function goToCurrentMonth() {
+  const now = new Date();
+  _monthlyYear  = now.getFullYear();
+  _monthlyMonth = now.getMonth() + 1;
+  loadMonthlyData();
+}
+
+function renderMonthly() {
+  const records = _monthlyData;
+  const gradeColors = { A:'#4caf7d', B:'#5bbf8a', C:'var(--accent)', D:'#dc8250', E:'var(--red)', F:'#b43232' };
+
+  if (!records.length) {
+    document.getElementById('monthly-bar-chart').innerHTML = '<div class="monthly-empty">この月のデータがありません</div>';
+    document.getElementById('monthly-day-list').innerHTML  = '<div class="monthly-empty">この月のデータがありません</div>';
+    document.getElementById('monthly-grade-dist').innerHTML = '';
+    ['m-total-pnl','m-winrate','m-winloss','m-days'].forEach(id => {
+      document.getElementById(id).textContent = '--';
+    });
+    return;
+  }
+
+  // サマリー計算
+  const totalPnl = records.reduce((s,r) => s + (Number(r['P&L'])||0), 0);
+  const wins     = records.filter(r => (Number(r['P&L'])||0) > 0).length;
+  const losses   = records.filter(r => (Number(r['P&L'])||0) < 0).length;
+  const winRate  = records.length ? Math.round(wins/records.length*100) : 0;
+
+  const totalEl = document.getElementById('m-total-pnl');
+  totalEl.textContent = formatPnl(totalPnl);
+  totalEl.className = 'monthly-summary-val ' + (totalPnl >= 0 ? 'positive' : 'negative');
+  document.getElementById('m-winrate').textContent    = winRate + '%';
+  document.getElementById('m-winloss').textContent    = wins + ' / ' + losses;
+  document.getElementById('m-days').textContent       = records.length + ' 日';
+
+  // バーチャート
+  const pnls   = records.map(r => Number(r['P&L'])||0);
+  const maxAbs = Math.max(...pnls.map(Math.abs), 1);
+  const barH   = 140; // px
+  const chart  = document.getElementById('monthly-bar-chart');
+  chart.innerHTML = records.map((r,i) => {
+    const pnl  = pnls[i];
+    const h    = Math.round(Math.abs(pnl) / maxAbs * barH);
+    const date = String(r['日付']).substring(8,10) + '日';
+    const cls  = pnl >= 0 ? 'positive' : 'negative';
+    return `
+      <div class="monthly-bar-wrap" onclick="jumpToDate('${r['日付']}')" title="${r['日付']} ${formatPnl(pnl)}">
+        <div class="monthly-bar ${cls}" style="height:${h}px;"></div>
+        <div class="monthly-bar-label">${date}</div>
+      </div>`;
+  }).join('');
+
+  // 評価分布
+  const gradeCounts = {};
+  records.forEach(r => {
+    const g = r['総合評価'] || '?';
+    gradeCounts[g] = (gradeCounts[g]||0) + 1;
+  });
+  const gradeOrder = ['A','B','C','D','E','F'];
+  document.getElementById('monthly-grade-dist').innerHTML =
+    gradeOrder.filter(g => gradeCounts[g]).map(g => `
+      <div class="monthly-grade-badge" style="color:${gradeColors[g]};border-color:${gradeColors[g]};background:${gradeColors[g]}22;">
+        ${g} <span style="font-size:16px;">${gradeCounts[g]}</span>
+      </div>`
+    ).join('');
+
+  // 日別一覧
+  document.getElementById('monthly-day-list').innerHTML = [...records].reverse().map(r => {
+    const pnl     = Number(r['P&L'])||0;
+    const grade   = r['総合評価'] || '-';
+    const tickers = ['銘柄①','銘柄②','銘柄③','銘柄④','銘柄⑤']
+      .map(k => r[k]).filter(Boolean).join('・');
+    return `
+      <div class="monthly-day-item" onclick="jumpToDate('${r['日付']}')">
+        <div class="monthly-day-date">${r['日付']||''}</div>
+        <div class="monthly-day-grade" style="color:${gradeColors[grade]||'var(--text-sub)'};">${grade}</div>
+        <div class="monthly-day-pnl ${pnl>=0?'positive':'negative'}">${formatPnl(pnl)}</div>
+        <div class="monthly-day-tickers">${tickers||'銘柄なし'}</div>
+      </div>`;
+  }).join('');
 }
 
 // ── 検索タブ ──
