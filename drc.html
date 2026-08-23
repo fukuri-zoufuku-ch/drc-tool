@@ -1122,6 +1122,148 @@
     padding: 60px 0;
   }
 
+  /* ─── タグ別タブ ─── */
+  .tags-wrap {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 36px 32px 100px;
+  }
+  .tags-selector {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px 28px;
+    margin-bottom: 20px;
+  }
+  .tags-chip-area {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .tags-cat-label {
+    width: 100%;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 8px;
+    margin-bottom: 4px;
+  }
+  .tags-select-chip {
+    padding: 7px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-sub);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tags-select-chip:hover { border-color: var(--border-strong); color: var(--text); }
+  .tags-select-chip.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+  .tags-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .tags-summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+  }
+  .tags-summary-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+  }
+  .tags-summary-val {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .tags-summary-val.positive { color: var(--green); }
+  .tags-summary-val.negative { color: var(--red); }
+  .tags-chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+  .tags-chart-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-sub);
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .tags-rank-list { display: flex; flex-direction: column; gap: 10px; }
+  .tags-rank-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .tags-rank-label {
+    min-width: 140px;
+    font-size: 13px;
+    color: var(--text-sub);
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .tags-rank-bar-wrap {
+    flex: 1;
+    height: 28px;
+    background: var(--surface-2);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .tags-rank-bar {
+    height: 100%;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    padding-left: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #000;
+    transition: width 0.4s ease;
+    min-width: 40px;
+  }
+  .tags-rank-count {
+    min-width: 40px;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .tags-result-list { display: flex; flex-direction: column; gap: 6px; }
+  .tags-result-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 18px;
+    display: grid;
+    grid-template-columns: 90px 50px 110px 1fr;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tags-result-item:hover { border-color: var(--accent); background: var(--accent-dim); }
+  .tags-empty {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+    padding: 60px 0;
+  }
+
   /* ─── 検索タグ選択 ─── */
   .search-tag-dropdown {
     position: relative;
@@ -2327,10 +2469,69 @@
 
 <!-- ── タグ別タブ ── -->
 <div id="page-tags" class="page">
-  <div class="coming-soon">
-    <h2>タグ別分析</h2>
-    <p>次のステップで実装します</p>
+<div class="tags-wrap">
+
+  <div class="page-title">タグ別分析</div>
+  <div class="page-sub" style="margin-bottom:24px;">タグを選択して、そのタグが付いたトレードの傾向を分析します</div>
+
+  <!-- タグ選択 -->
+  <div class="tags-selector">
+    <div style="font-size:14px;color:var(--text-sub);margin-bottom:14px;">分析するタグを選択してください</div>
+    <div class="tags-chip-area" id="tags-chip-area"></div>
   </div>
+
+  <!-- 選択中タグ表示 -->
+  <div id="tags-analysis-area" style="display:none;">
+
+    <!-- サマリー -->
+    <div class="tags-summary-grid">
+      <div class="tags-summary-card">
+        <div class="tags-summary-label">件数</div>
+        <div class="tags-summary-val" id="tag-count">--</div>
+      </div>
+      <div class="tags-summary-card">
+        <div class="tags-summary-label">合計 P&amp;L</div>
+        <div class="tags-summary-val" id="tag-total-pnl">--</div>
+      </div>
+      <div class="tags-summary-card">
+        <div class="tags-summary-label">平均 P&amp;L</div>
+        <div class="tags-summary-val" id="tag-avg-pnl">--</div>
+      </div>
+      <div class="tags-summary-card">
+        <div class="tags-summary-label">勝率</div>
+        <div class="tags-summary-val" id="tag-winrate">--%</div>
+      </div>
+    </div>
+
+    <!-- P&L推移 -->
+    <div class="tags-chart-card">
+      <div class="tags-chart-title">P&amp;L 推移（このタグが付いた日）</div>
+      <div class="monthly-line-chart" id="tags-line-chart"></div>
+    </div>
+
+    <!-- 評価分布 -->
+    <div class="tags-chart-card">
+      <div class="tags-chart-title">評価分布</div>
+      <div class="monthly-grade-dist" id="tags-grade-dist"></div>
+    </div>
+
+    <!-- 同時出現タグランキング -->
+    <div class="tags-chart-card">
+      <div class="tags-chart-title">よく一緒に付くタグ</div>
+      <div class="tags-rank-list" id="tags-cooccur-list"></div>
+    </div>
+
+    <!-- 該当日一覧 -->
+    <div class="tags-chart-card">
+      <div class="tags-chart-title">該当日一覧</div>
+      <div class="tags-result-list" id="tags-result-list"></div>
+    </div>
+
+  </div>
+
+  <div id="tags-empty-msg" class="tags-empty" style="display:none;">該当するデータがありません</div>
+
+</div>
 </div>
 
 <!-- ── 設定タブ ── -->
@@ -3083,6 +3284,7 @@ function switchTab(name, el) {
   if (name === 'search') initSearchTab();
   if (name === 'monthly') loadMonthlyData();
   if (name === 'yearly') loadYearlyData();
+  if (name === 'tags') loadTagsTab();
   if (name === 'settings') { renderSettingsPage(); renderLinksSettings(); renderGradeCriteriaUI(); }
   if (name === 'connect') renderConnectPage();
 }
@@ -3996,6 +4198,149 @@ function renderMonthly() {
         <div class="monthly-day-grade" style="color:${gradeColors[grade]||'var(--text-sub)'};">${grade}</div>
         <div class="monthly-day-pnl ${pnl>=0?'positive':'negative'}">${formatPnl(pnl)}</div>
         <div class="monthly-day-tickers">${tickers||'銘柄なし'}</div>
+      </div>`;
+  }).join('');
+}
+
+// ── タグ別タブ ──
+let _selectedAnalysisTag = null;
+let _allDRCCache = [];
+
+async function loadTagsTab() {
+  renderTagChips();
+  // 全データをキャッシュ（未取得の場合のみ）
+  if (!_allDRCCache.length && getGasUrl()) {
+    try {
+      const res  = await fetch(getGasUrl() + '?action=getDRC&limit=1000');
+      const data = await res.json();
+      if (data.status === 'ok') _allDRCCache = data.records || [];
+    } catch(e) { console.warn('タグ別データ取得失敗:', e); }
+  }
+  if (_selectedAnalysisTag) analyzeTag(_selectedAnalysisTag);
+}
+
+function renderTagChips() {
+  const master = getTagMaster();
+  const area   = document.getElementById('tags-chip-area');
+  if (!area) return;
+  area.innerHTML = master.map(cat => `
+    <div class="tags-cat-label">${cat.name}</div>
+    ${cat.tags.map(tag => `
+      <div class="tags-select-chip ${tag === _selectedAnalysisTag ? 'active' : ''}"
+        onclick="selectAnalysisTag('${tag}')">${tag}</div>
+    `).join('')}
+  `).join('');
+}
+
+async function selectAnalysisTag(tag) {
+  _selectedAnalysisTag = tag;
+  renderTagChips();
+  await analyzeTag(tag);
+}
+
+async function analyzeTag(tag) {
+  if (!getGasUrl()) return;
+  // キャッシュがなければ取得
+  if (!_allDRCCache.length) {
+    try {
+      const res  = await fetch(getGasUrl() + '?action=getDRC&limit=1000');
+      const data = await res.json();
+      if (data.status === 'ok') _allDRCCache = data.records || [];
+    } catch(e) { return; }
+  }
+
+  // タグ①〜⑤のいずれかに該当するレコードを抽出
+  const tagKeys = ['タグ①','タグ②','タグ③','タグ④','タグ⑤'];
+  const matched = _allDRCCache.filter(r => {
+    return tagKeys.some(k => {
+      const tags = String(r[k]||'').split(',').map(t=>t.trim()).filter(Boolean);
+      return tags.includes(tag);
+    });
+  });
+
+  const analysisArea = document.getElementById('tags-analysis-area');
+  const emptyMsg     = document.getElementById('tags-empty-msg');
+
+  if (!matched.length) {
+    analysisArea.style.display = 'none';
+    emptyMsg.style.display = 'block';
+    return;
+  }
+  analysisArea.style.display = 'block';
+  emptyMsg.style.display = 'none';
+
+  const gradeColors = { A:'#4caf7d', B:'#5bbf8a', C:'var(--accent)', D:'#dc8250', E:'var(--red)', F:'#b43232' };
+
+  // サマリー
+  const totalPnl = matched.reduce((s,r) => s+(Number(r['P&L'])||0), 0);
+  const wins     = matched.filter(r => (Number(r['P&L'])||0) > 0).length;
+  const winRate  = matched.length ? Math.round(wins/matched.length*100) : 0;
+  const avgPnl   = matched.length ? Math.round(totalPnl/matched.length) : 0;
+
+  document.getElementById('tag-count').textContent = matched.length + ' 件';
+  const totalEl = document.getElementById('tag-total-pnl');
+  totalEl.textContent = formatPnl(totalPnl);
+  totalEl.className = 'tags-summary-val ' + (totalPnl>=0?'positive':'negative');
+  const avgEl = document.getElementById('tag-avg-pnl');
+  avgEl.textContent = formatPnl(avgPnl);
+  avgEl.className = 'tags-summary-val ' + (avgPnl>=0?'positive':'negative');
+  document.getElementById('tag-winrate').textContent = winRate + '%';
+
+  // P&L推移（日付順）
+  const sorted = [...matched].sort((a,b) => String(a['日付']).localeCompare(String(b['日付'])));
+  renderCumulativeChart(sorted, 'tags-line-chart');
+
+  // 評価分布
+  const gradeCounts = {};
+  matched.forEach(r => {
+    const g = r['総合評価'] || '?';
+    gradeCounts[g] = (gradeCounts[g]||0) + 1;
+  });
+  const gradeOrder = ['A','B','C','D','E','F'];
+  document.getElementById('tags-grade-dist').innerHTML =
+    gradeOrder.filter(g => gradeCounts[g]).map(g => `
+      <div class="monthly-grade-badge" style="color:${gradeColors[g]};border-color:${gradeColors[g]};background:${gradeColors[g]}22;">
+        ${g} <span style="font-size:16px;">${gradeCounts[g]}</span>
+      </div>`
+    ).join('');
+
+  // 同時出現タグ集計
+  const cooccur = {};
+  matched.forEach(r => {
+    tagKeys.forEach(k => {
+      String(r[k]||'').split(',').map(t=>t.trim()).filter(Boolean).forEach(t => {
+        if (t !== tag) cooccur[t] = (cooccur[t]||0) + 1;
+      });
+    });
+  });
+  const cooccurSorted = Object.entries(cooccur).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxCount = cooccurSorted[0]?.[1] || 1;
+  document.getElementById('tags-cooccur-list').innerHTML = cooccurSorted.length
+    ? cooccurSorted.map(([t,cnt]) => `
+        <div class="tags-rank-item">
+          <div class="tags-rank-label">${t}</div>
+          <div class="tags-rank-bar-wrap">
+            <div class="tags-rank-bar" style="width:${Math.round(cnt/maxCount*100)}%;background:var(--accent);">
+              ${cnt}回
+            </div>
+          </div>
+          <div class="tags-rank-count">${Math.round(cnt/matched.length*100)}%</div>
+        </div>`
+      ).join('')
+    : '<div style="color:var(--text-muted);font-size:13px;">同時出現タグなし</div>';
+
+  // 該当日一覧
+  document.getElementById('tags-result-list').innerHTML = sorted.reverse().map(r => {
+    const pnl     = Number(r['P&L'])||0;
+    const grade   = r['総合評価'] || '-';
+    const tickers = ['銘柄①','銘柄②','銘柄③','銘柄④','銘柄⑤']
+      .map(k=>r[k]).filter(Boolean).join('・');
+    return `
+      <div class="tags-result-item" onclick="jumpToDate('${r['日付']}')">
+        <div style="font-size:14px;font-weight:600;color:var(--text);">${r['日付']||''}</div>
+        <div style="font-size:16px;font-weight:700;text-align:center;color:${gradeColors[grade]||'var(--text-sub)'};">${grade}</div>
+        <div style="font-size:14px;font-weight:600;text-align:right;color:${pnl>=0?'var(--green)':'var(--red)'};">${formatPnl(pnl)}</div>
+        <div style="font-size:13px;color:var(--text-sub);">${tickers||'銘柄なし'}</div>
       </div>`;
   }).join('');
 }
