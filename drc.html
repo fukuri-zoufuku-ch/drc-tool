@@ -990,6 +990,138 @@
     padding: 60px 0;
   }
 
+  /* ─── 年間タブ ─── */
+  .yearly-wrap {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 36px 32px 100px;
+  }
+  .yearly-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .yearly-title { font-size: 24px; font-weight: 700; color: var(--text); min-width: 100px; text-align: center; }
+  .yearly-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .yearly-summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+  }
+  .yearly-summary-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+  }
+  .yearly-summary-val {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .yearly-summary-val.positive { color: var(--green); }
+  .yearly-summary-val.negative { color: var(--red); }
+  .yearly-chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+  .yearly-chart-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-sub);
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .yearly-month-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 6px;
+    align-items: end;
+  }
+  .yearly-month-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .yearly-month-col:hover { opacity: 0.75; }
+  .yearly-month-bar {
+    width: 100%;
+    min-height: 2px;
+    border-radius: 3px 3px 0 0;
+  }
+  .yearly-month-bar.positive { background: var(--green); }
+  .yearly-month-bar.negative { background: var(--red); border-radius: 0 0 3px 3px; }
+  .yearly-month-bar.zero { background: var(--border-strong); height: 2px; }
+  .yearly-month-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+  }
+  .yearly-month-pnl {
+    font-size: 10px;
+    font-weight: 600;
+    text-align: center;
+  }
+  .yearly-month-pnl.positive { color: var(--green); }
+  .yearly-month-pnl.negative { color: var(--red); }
+  .yearly-heatmap {
+    display: grid;
+    grid-template-columns: 24px repeat(53, 1fr);
+    gap: 2px;
+    font-size: 10px;
+  }
+  .yearly-heatmap-cell {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .yearly-heatmap-cell:hover { opacity: 0.7; }
+  .yearly-month-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .yearly-month-table th {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    font-weight: 500;
+  }
+  .yearly-month-table td {
+    padding: 10px 12px;
+    font-size: 14px;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+  }
+  .yearly-month-table tr:last-child td { border-bottom: none; }
+  .yearly-month-table tr:hover td { background: var(--surface-2); cursor: pointer; }
+  .yearly-empty {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+    padding: 60px 0;
+  }
+
   /* ─── 検索タグ選択 ─── */
   .search-tag-dropdown {
     position: relative;
@@ -2131,10 +2263,66 @@
 
 <!-- ── 年間タブ ── -->
 <div id="page-yearly" class="page">
-  <div class="coming-soon">
-    <h2>年間サマリー</h2>
-    <p>次のステップで実装します</p>
+<div class="yearly-wrap">
+
+  <!-- ヘッダー -->
+  <div class="yearly-header">
+    <button class="monthly-nav-btn" onclick="changeYear(-1)">‹</button>
+    <div class="yearly-title" id="yearly-title">----年</div>
+    <button class="monthly-nav-btn" onclick="changeYear(1)">›</button>
+    <button class="monthly-nav-btn" style="margin-left:8px;font-size:13px;width:auto;padding:0 12px;border-radius:var(--radius);" onclick="goToCurrentYear()">今年</button>
   </div>
+
+  <!-- サマリーカード -->
+  <div class="yearly-summary-grid">
+    <div class="yearly-summary-card">
+      <div class="yearly-summary-label">年間 P&amp;L</div>
+      <div class="yearly-summary-val" id="y-total-pnl">--</div>
+    </div>
+    <div class="yearly-summary-card">
+      <div class="yearly-summary-label">年間勝率</div>
+      <div class="yearly-summary-val" id="y-winrate">--%</div>
+    </div>
+    <div class="yearly-summary-card">
+      <div class="yearly-summary-label">トレード日数</div>
+      <div class="yearly-summary-val" id="y-days">--</div>
+    </div>
+    <div class="yearly-summary-card">
+      <div class="yearly-summary-label">最高月 / 最低月</div>
+      <div class="yearly-summary-val" id="y-best-worst" style="font-size:16px;">-- / --</div>
+    </div>
+  </div>
+
+  <!-- 月別P&Lバーチャート -->
+  <div class="yearly-chart-card">
+    <div class="yearly-chart-title">月別 P&amp;L</div>
+    <div style="height:200px;display:flex;align-items:flex-end;gap:6px;padding:10px 0 0;" id="yearly-month-chart"></div>
+  </div>
+
+  <!-- 累積P&L折れ線 -->
+  <div class="yearly-chart-card">
+    <div class="yearly-chart-title">累積 P&amp;L 推移（年間）</div>
+    <div class="monthly-line-chart" id="yearly-line-chart"></div>
+  </div>
+
+  <!-- 月別サマリーテーブル -->
+  <div class="yearly-chart-card">
+    <div class="yearly-chart-title">月別サマリー</div>
+    <table class="yearly-month-table" id="yearly-month-table">
+      <thead>
+        <tr>
+          <th>月</th>
+          <th>P&amp;L</th>
+          <th>勝率</th>
+          <th>日数</th>
+          <th>主な評価</th>
+        </tr>
+      </thead>
+      <tbody id="yearly-month-tbody"></tbody>
+    </table>
+  </div>
+
+</div>
 </div>
 
 <!-- ── タグ別タブ ── -->
@@ -2894,6 +3082,7 @@ function switchTab(name, el) {
   if (name === 'links') { renderLinksPage(); if (!_linksCache.length) fetchLinks(); }
   if (name === 'search') initSearchTab();
   if (name === 'monthly') loadMonthlyData();
+  if (name === 'yearly') loadYearlyData();
   if (name === 'settings') { renderSettingsPage(); renderLinksSettings(); renderGradeCriteriaUI(); }
   if (name === 'connect') renderConnectPage();
 }
@@ -3509,6 +3698,125 @@ async function submitDRC() {
   btn.disabled = false;
 }
 
+// ── 年間タブ ──
+let _yearlyYear = new Date().getFullYear();
+let _yearlyData = [];
+
+async function loadYearlyData() {
+  if (!getGasUrl()) return;
+  const y    = _yearlyYear;
+  const from = y + '-01-01';
+  const to   = y + '-12-31';
+  document.getElementById('yearly-title').textContent = y + '年';
+  try {
+    const res  = await fetch(getGasUrl() + '?action=getDRC&dateFrom=' + from + '&dateTo=' + to + '&limit=366');
+    const data = await res.json();
+    if (data.status === 'ok') {
+      _yearlyData = (data.records || []).reverse();
+      renderYearly();
+    }
+  } catch(e) { console.warn('年間データ取得失敗:', e); }
+}
+
+function changeYear(delta) {
+  _yearlyYear += delta;
+  loadYearlyData();
+}
+function goToCurrentYear() {
+  _yearlyYear = new Date().getFullYear();
+  loadYearlyData();
+}
+
+function renderYearly() {
+  const records = _yearlyData;
+  const gradeColors = { A:'#4caf7d', B:'#5bbf8a', C:'var(--accent)', D:'#dc8250', E:'var(--red)', F:'#b43232' };
+
+  if (!records.length) {
+    ['yearly-month-chart','yearly-line-chart','yearly-month-tbody'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '<div class="yearly-empty">データがありません</div>';
+    });
+    ['y-total-pnl','y-winrate','y-days','y-best-worst'].forEach(id => {
+      document.getElementById(id).textContent = '--';
+    });
+    return;
+  }
+
+  // 月別集計
+  const months = {};
+  for (let m = 1; m <= 12; m++) months[m] = { pnl:0, days:0, wins:0, grades:{} };
+  records.forEach(r => {
+    const m   = parseInt(String(r['日付']).substring(5,7));
+    const pnl = Number(r['P&L']) || 0;
+    if (!months[m]) return;
+    months[m].pnl  += pnl;
+    months[m].days++;
+    if (pnl > 0) months[m].wins++;
+    const g = r['総合評価'] || '?';
+    months[m].grades[g] = (months[m].grades[g]||0) + 1;
+  });
+
+  // サマリー
+  const totalPnl = records.reduce((s,r) => s+(Number(r['P&L'])||0), 0);
+  const wins     = records.filter(r => (Number(r['P&L'])||0) > 0).length;
+  const winRate  = records.length ? Math.round(wins/records.length*100) : 0;
+  const monthPnls = Object.values(months).filter(m => m.days > 0).map(m => m.pnl);
+  const bestMonth  = Math.max(...monthPnls);
+  const worstMonth = Math.min(...monthPnls);
+
+  const totalEl = document.getElementById('y-total-pnl');
+  totalEl.textContent = formatPnl(totalPnl);
+  totalEl.className = 'yearly-summary-val ' + (totalPnl >= 0 ? 'positive' : 'negative');
+  document.getElementById('y-winrate').textContent = winRate + '%';
+  document.getElementById('y-days').textContent    = records.length + ' 日';
+  document.getElementById('y-best-worst').innerHTML =
+    `<span style="color:var(--green);">${formatPnl(bestMonth)}</span> / <span style="color:var(--red);">${formatPnl(worstMonth)}</span>`;
+
+  // 月別バーチャート
+  const maxAbsPnl = Math.max(...Object.values(months).map(m => Math.abs(m.pnl)), 1);
+  const barMaxH   = 160;
+  const chart = document.getElementById('yearly-month-chart');
+  chart.innerHTML = Array.from({length:12},(_,i)=>i+1).map(m => {
+    const md  = months[m];
+    const h   = Math.round(Math.abs(md.pnl) / maxAbsPnl * barMaxH);
+    const cls = md.pnl > 0 ? 'positive' : md.pnl < 0 ? 'negative' : 'zero';
+    return `
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:${barMaxH+40}px;justify-content:flex-end;cursor:pointer;"
+        onclick="goToYearlyMonth(${m})" title="${m}月 ${formatPnl(md.pnl)}">
+        ${md.pnl !== 0 ? `<div style="font-size:10px;font-weight:600;color:${md.pnl>0?'var(--green)':'var(--red)'};">${md.pnl>0?'+':'▲'}${Math.abs(Math.round(md.pnl/1000))}k</div>` : ''}
+        <div class="yearly-month-bar ${cls}" style="width:100%;height:${h||2}px;"></div>
+        <div style="font-size:11px;color:var(--text-muted);">${m}月</div>
+      </div>`;
+  }).join('');
+
+  // 累積折れ線
+  renderCumulativeChart(records, 'yearly-line-chart');
+
+  // 月別テーブル
+  const tbody = document.getElementById('yearly-month-tbody');
+  tbody.innerHTML = Array.from({length:12},(_,i)=>i+1).map(m => {
+    const md  = months[m];
+    if (!md.days) return `<tr><td style="color:var(--text-muted);">${m}月</td><td colspan="4" style="color:var(--text-muted);">-</td></tr>`;
+    const winR = Math.round(md.wins/md.days*100);
+    const topGrade = Object.entries(md.grades).sort((a,b)=>b[1]-a[1])[0]?.[0] || '-';
+    return `
+      <tr onclick="goToYearlyMonth(${m})" style="cursor:pointer;">
+        <td style="font-weight:600;">${m}月</td>
+        <td style="font-weight:600;color:${md.pnl>=0?'var(--green)':'var(--red)'};">${formatPnl(md.pnl)}</td>
+        <td>${winR}%</td>
+        <td>${md.days}日</td>
+        <td style="color:${gradeColors[topGrade]||'var(--text-sub)'};">${topGrade}</td>
+      </tr>`;
+  }).join('');
+}
+
+function goToYearlyMonth(month) {
+  _monthlyYear  = _yearlyYear;
+  _monthlyMonth = month;
+  switchTab('monthly', document.querySelectorAll('.tab')[2]);
+  loadMonthlyData();
+}
+
 // ── 月次タブ ──
 let _monthlyYear  = new Date().getFullYear();
 let _monthlyMonth = new Date().getMonth() + 1;
@@ -3534,8 +3842,8 @@ async function loadMonthlyData() {
   } catch(e) { console.warn('月次データ取得失敗:', e); }
 }
 
-function renderCumulativeChart(records) {
-  const container = document.getElementById('monthly-line-chart');
+function renderCumulativeChart(records, containerId) {
+  const container = document.getElementById(containerId || 'monthly-line-chart');
   if (!container) return;
 
   if (!records.length) {
