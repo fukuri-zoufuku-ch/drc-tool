@@ -158,16 +158,16 @@
   }
   .ticker-wrap.hidden { display: none; }
   .ticker-track {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     white-space: nowrap;
-    animation: ticker-scroll linear infinite;
-    gap: 0;
+    animation: ticker-scroll 60s linear infinite;
+    will-change: transform;
   }
   .ticker-track:hover { animation-play-state: paused; }
   @keyframes ticker-scroll {
-    from { transform: translateX(0); }
-    to   { transform: translateX(-50%); }
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
   }
   .ticker-item {
     font-size: 13px;
@@ -2014,6 +2014,12 @@
     <span class="nav-gas-label" id="gas-status-text">未設定</span>
   </div>
 </nav>
+
+<!-- ティッカー -->
+<div class="ticker-wrap" id="ticker-wrap">
+  <div class="ticker-track" id="ticker-track"></div>
+  <button class="ticker-toggle" onclick="toggleTicker()" title="非表示/表示">✕</button>
+</div>
 
 <!-- ── 入力タブ ── -->
 <div id="page-input" class="page active">
