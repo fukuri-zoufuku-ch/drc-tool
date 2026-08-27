@@ -25,6 +25,125 @@
     --radius-lg: 12px;
   }
 
+  /* ── テーマ: Midnight Blue ── */
+  [data-theme="midnight"] {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface-2: #1a2235;
+    --surface-3: #223047;
+    --border: #1e2d45;
+    --border-strong: #2d4060;
+    --text: #e2e8f0;
+    --text-sub: #7a90aa;
+    --text-muted: #4a6080;
+    --accent: #60a5fa;
+    --accent-dim: rgba(96,165,250,0.12);
+    --green: #34d399;
+    --green-dim: rgba(52,211,153,0.12);
+    --red: #f87171;
+    --red-dim: rgba(248,113,113,0.12);
+  }
+
+  /* ── テーマ: Dark Green ── */
+  [data-theme="forest"] {
+    --bg: #0a140e;
+    --surface: #111c15;
+    --surface-2: #18271c;
+    --surface-3: #1f3224;
+    --border: #1e3525;
+    --border-strong: #2d4a35;
+    --text: #e2ede6;
+    --text-sub: #7a9a80;
+    --text-muted: #4a6a50;
+    --accent: #4ade80;
+    --accent-dim: rgba(74,222,128,0.12);
+    --green: #4ade80;
+    --green-dim: rgba(74,222,128,0.12);
+    --red: #f87171;
+    --red-dim: rgba(248,113,113,0.12);
+  }
+
+  /* ── テーマ: Charcoal ── */
+  [data-theme="charcoal"] {
+    --bg: #1c1c1e;
+    --surface: #2c2c2e;
+    --surface-2: #3a3a3c;
+    --surface-3: #48484a;
+    --border: #3a3a3c;
+    --border-strong: #545456;
+    --text: #f2f2f7;
+    --text-sub: #aeaeb2;
+    --text-muted: #636366;
+    --accent: #ffffff;
+    --accent-dim: rgba(255,255,255,0.08);
+    --green: #30d158;
+    --green-dim: rgba(48,209,88,0.12);
+    --red: #ff453a;
+    --red-dim: rgba(255,69,58,0.12);
+  }
+
+  /* ── テーマ: Pure Black ── */
+  [data-theme="pure"] {
+    --bg: #000000;
+    --surface: #0d0d0d;
+    --surface-2: #1a1a1a;
+    --surface-3: #222222;
+    --border: #222222;
+    --border-strong: #333333;
+    --text: #ffffff;
+    --text-sub: #888888;
+    --text-muted: #444444;
+    --accent: #ffffff;
+    --accent-dim: rgba(255,255,255,0.08);
+    --green: #00ff88;
+    --green-dim: rgba(0,255,136,0.12);
+    --red: #ff3333;
+    --red-dim: rgba(255,51,51,0.12);
+  }
+
+  /* ── テーマ設定UI ── */
+  .theme-cards {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .theme-card {
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .theme-card:hover { transform: translateY(-2px); }
+  .theme-card.selected { border-color: var(--accent); }
+  .theme-preview {
+    height: 64px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    justify-content: center;
+  }
+  .theme-preview-bar {
+    height: 8px;
+    border-radius: 4px;
+  }
+  .theme-name {
+    font-size: 12px;
+    text-align: center;
+    padding: 6px 0;
+    font-weight: 500;
+    color: var(--text-sub);
+  }
+  .theme-card.selected .theme-name { color: var(--accent); font-weight: 600; }
+  .font-size-preview {
+    font-size: 13px;
+    color: var(--text-sub);
+    margin-top: 8px;
+    text-align: center;
+  }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
@@ -2538,7 +2657,72 @@
 <div id="page-settings" class="page">
 <div class="settings-wrap">
   <div class="page-title">設定</div>
-  <div class="page-sub" style="margin-bottom:28px;">タグ・リンク集・評価基準を管理します</div>
+  <div class="page-sub" style="margin-bottom:28px;">テーマ・フォント・タグ・リンク・評価基準を管理します</div>
+
+  <!-- デザイン設定 -->
+  <div style="margin-bottom:40px;">
+    <div style="font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px;">デザインテーマ</div>
+    <div style="font-size:14px;color:var(--text-sub);margin-bottom:20px;">テーマを選択してください</div>
+    <div class="theme-cards">
+
+      <div class="theme-card" id="theme-card-dark" onclick="applyTheme('dark')">
+        <div class="theme-preview" style="background:#0f0f0f;">
+          <div class="theme-preview-bar" style="background:#1a1a1a;width:100%;"></div>
+          <div class="theme-preview-bar" style="background:#c8a96e;width:60%;"></div>
+          <div class="theme-preview-bar" style="background:#4caf7d;width:40%;"></div>
+        </div>
+        <div class="theme-name" style="background:#1a1a1a;">Dark Gold</div>
+      </div>
+
+      <div class="theme-card" id="theme-card-midnight" onclick="applyTheme('midnight')">
+        <div class="theme-preview" style="background:#0a0e1a;">
+          <div class="theme-preview-bar" style="background:#111827;width:100%;"></div>
+          <div class="theme-preview-bar" style="background:#60a5fa;width:60%;"></div>
+          <div class="theme-preview-bar" style="background:#34d399;width:40%;"></div>
+        </div>
+        <div class="theme-name" style="background:#111827;color:#7a90aa;">Midnight Blue</div>
+      </div>
+
+      <div class="theme-card" id="theme-card-forest" onclick="applyTheme('forest')">
+        <div class="theme-preview" style="background:#0a140e;">
+          <div class="theme-preview-bar" style="background:#111c15;width:100%;"></div>
+          <div class="theme-preview-bar" style="background:#4ade80;width:60%;"></div>
+          <div class="theme-preview-bar" style="background:#f87171;width:40%;"></div>
+        </div>
+        <div class="theme-name" style="background:#111c15;color:#7a9a80;">Dark Green</div>
+      </div>
+
+      <div class="theme-card" id="theme-card-charcoal" onclick="applyTheme('charcoal')">
+        <div class="theme-preview" style="background:#1c1c1e;">
+          <div class="theme-preview-bar" style="background:#2c2c2e;width:100%;"></div>
+          <div class="theme-preview-bar" style="background:#ffffff;width:60%;"></div>
+          <div class="theme-preview-bar" style="background:#30d158;width:40%;"></div>
+        </div>
+        <div class="theme-name" style="background:#2c2c2e;color:#aeaeb2;">Charcoal</div>
+      </div>
+
+      <div class="theme-card" id="theme-card-pure" onclick="applyTheme('pure')">
+        <div class="theme-preview" style="background:#000000;">
+          <div class="theme-preview-bar" style="background:#0d0d0d;width:100%;"></div>
+          <div class="theme-preview-bar" style="background:#ffffff;width:60%;"></div>
+          <div class="theme-preview-bar" style="background:#00ff88;width:40%;"></div>
+        </div>
+        <div class="theme-name" style="background:#0d0d0d;color:#888888;">Pure Black</div>
+      </div>
+
+    </div>
+
+    <div style="font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px;">フォントサイズ</div>
+    <div style="font-size:14px;color:var(--text-sub);margin-bottom:16px;">文字の大きさを調整します</div>
+    <div style="display:flex;align-items:center;gap:16px;max-width:500px;">
+      <span style="font-size:13px;color:var(--text-muted);">小</span>
+      <input type="range" id="font-size-slider" min="13" max="20" value="16" step="1"
+        oninput="applyFontSize(this.value)" style="flex:1;accent-color:var(--accent);" />
+      <span style="font-size:13px;color:var(--text-muted);">大</span>
+      <span style="font-size:16px;font-weight:600;color:var(--accent);min-width:40px;" id="font-size-val">16px</span>
+    </div>
+    <div class="font-size-preview">← スライダーで調整すると即時反映されます</div>
+  </div>
 
   <div id="settings-tag-categories"></div>
 
@@ -2905,6 +3089,35 @@ function onLinkDragEnd(e) {
   });
 }
 
+// ── テーマ・フォントサイズ ──
+const THEMES = ['dark','midnight','forest','charcoal','pure'];
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme === 'dark' ? '' : theme);
+  localStorage.setItem('drc_theme', theme);
+  // カード選択状態を更新
+  THEMES.forEach(t => {
+    const card = document.getElementById('theme-card-' + t);
+    if (card) card.classList.toggle('selected', t === theme);
+  });
+}
+
+function applyFontSize(size) {
+  document.body.style.fontSize = size + 'px';
+  localStorage.setItem('drc_font_size', size);
+  const val = document.getElementById('font-size-val');
+  if (val) val.textContent = size + 'px';
+  const slider = document.getElementById('font-size-slider');
+  if (slider) slider.value = size;
+}
+
+function loadThemeSettings() {
+  const theme    = localStorage.getItem('drc_theme') || 'dark';
+  const fontSize = localStorage.getItem('drc_font_size') || '16';
+  applyTheme(theme);
+  applyFontSize(fontSize);
+}
+
 // ── 評価基準（localStorageで管理） ──
 const DEFAULT_GRADE_CRITERIA = {
   A: {
@@ -3021,6 +3234,8 @@ const state = {
 
 // ── 初期化 ──
 document.addEventListener('DOMContentLoaded', async () => {
+  // テーマ・フォントサイズを最初に適用（ちらつき防止）
+  loadThemeSettings();
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('date').value = today;
   updateDateDisplay();
@@ -3285,7 +3500,7 @@ function switchTab(name, el) {
   if (name === 'monthly') loadMonthlyData();
   if (name === 'yearly') loadYearlyData();
   if (name === 'tags') loadTagsTab();
-  if (name === 'settings') { renderSettingsPage(); renderLinksSettings(); renderGradeCriteriaUI(); }
+  if (name === 'settings') { renderSettingsPage(); renderLinksSettings(); renderGradeCriteriaUI(); updateThemeCardUI(); }
   if (name === 'connect') renderConnectPage();
 }
 
@@ -3432,6 +3647,19 @@ function renderTradeTagUI(tradeIdx) {
 }
 
 // ── 設定ページ描画 ──
+function updateThemeCardUI() {
+  const theme = localStorage.getItem('drc_theme') || 'dark';
+  THEMES.forEach(t => {
+    const card = document.getElementById('theme-card-' + t);
+    if (card) card.classList.toggle('selected', t === theme);
+  });
+  const fontSize = localStorage.getItem('drc_font_size') || '16';
+  const slider = document.getElementById('font-size-slider');
+  const val    = document.getElementById('font-size-val');
+  if (slider) slider.value = fontSize;
+  if (val)    val.textContent = fontSize + 'px';
+}
+
 function renderSettingsPage() {
   const master = getTagMaster();
   const container = document.getElementById('settings-tag-categories');
