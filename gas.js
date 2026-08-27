@@ -22,6 +22,7 @@ function doGet(e) {
     if (action === 'getDRC')        return jsonResponse(getDRC(e.parameter));
     if (action === 'getImages')      return jsonResponse(getImages(e.parameter));
     if (action === 'getLinks')       return jsonResponse(getLinks());
+    if (action === 'getTicker')      return jsonResponse(getTicker());
     return jsonResponse({ status: 'error', message: 'Unknown action: ' + action });
   } catch (err) {
     return jsonResponse({ status: 'error', message: err.message });
@@ -43,6 +44,7 @@ function doPost(e) {
     if (action === 'saveImage')     return jsonResponse(saveImage(body));
     if (action === 'deleteDRC')     return jsonResponse(deleteDRC(body.date));
     if (action === 'saveLinks')      return jsonResponse(saveLinks(body.links));
+    if (action === 'saveTicker')     return jsonResponse(saveTicker(body.items));
     return jsonResponse({ status: 'error', message: 'Unknown action: ' + action });
   } catch (err) {
     return jsonResponse({ status: 'error', message: err.message });
@@ -461,10 +463,13 @@ function getDRC(params) {
       if (pnlMin !== null && pnl < pnlMin) return false;
       if (pnlMax !== null && pnl > pnlMax) return false;
       if (tag) {
-        // トレード①〜⑤のタグ列をすべて検索
-        const tagCols = [28, 34, 40, 46, 52]; // タグ①〜⑤の列インデックス（0始まり）
+        // ヘッダーからタグ列を動的に検索
+        const tagKeys = ['タグ①','タグ②','タグ③','タグ④','タグ⑤'];
+        const tagCols = tagKeys.map(k => headers.indexOf(k)).filter(i => i >= 0);
         const allTags = tagCols.map(c => String(row[c] || '')).join(',');
-        if (!allTags.includes(tag)) return false;
+        // カンマ区切りのタグリストの中に完全一致するものがあるかチェック
+        const tagList = allTags.split(',').map(t => t.trim()).filter(Boolean);
+        if (!tagList.includes(tag)) return false;
       }
       return true;
     })
@@ -486,6 +491,34 @@ function getDRC(params) {
   });
 
   return { status: 'ok', records: result };
+}
+
+// ============================================================
+//  TICKER シート管理
+// ============================================================
+
+const SHEET_TICKER = 'TICKER';
+
+function getTicker() {
+  var sheet = getOrCreateSheet(SHEET_TICKER);
+  var rows  = sheet.getDataRange().getValues();
+  if (rows.length <= 1) return { status: 'ok', items: [] };
+  var items = rows.slice(1)
+    .filter(function(r) { return String(r[0]).trim() !== ''; })
+    .map(function(r) { return String(r[0]); });
+  return { status: 'ok', items: items };
+}
+
+function saveTicker(items) {
+  var sheet = getOrCreateSheet(SHEET_TICKER);
+  sheet.clearContents();
+  sheet.appendRow(['message']);
+  var headerRange = sheet.getRange(1,1,1,1);
+  headerRange.setBackground('#1a1a2e').setFontColor('#c8a96e').setFontWeight('bold');
+  (items || []).filter(function(t){ return t.trim(); }).forEach(function(item) {
+    sheet.appendRow([item]);
+  });
+  return { status: 'ok' };
 }
 
 // ============================================================
@@ -579,12 +612,19 @@ function getImages(params) {
         }
         var file = DriveApp.getFileById(fileId);
         var blob = file.getBlob();
-        var base64 = Utilities.base64Encode(blob.getBytes());
+        // 画像をリサイズして転送量を削減（幅1200px以下に圧縮）
+        var resized = blob;
+        try {
+          resized = blob.getAs('image/jpeg');
+        } catch(re) {
+          resized = blob; // 変換失敗時はそのまま
+        }
+        var base64 = Utilities.base64Encode(resized.getBytes());
         result.push({
           tradeIdx: tradeIdx,
           imgIdx:   imgIdx,
           base64:   base64,
-          mimeType: blob.getContentType(),
+          mimeType: 'image/jpeg',
           name:     file.getName()
         });
       } catch(e) {

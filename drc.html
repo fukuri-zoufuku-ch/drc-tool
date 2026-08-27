@@ -146,6 +146,84 @@
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
+  /* ─── ティッカー ─── */
+  .ticker-wrap {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    position: relative;
+  }
+  .ticker-wrap.hidden { display: none; }
+  .ticker-track {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    animation: ticker-scroll linear infinite;
+    gap: 0;
+  }
+  .ticker-track:hover { animation-play-state: paused; }
+  @keyframes ticker-scroll {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+  .ticker-item {
+    font-size: 13px;
+    color: var(--text-sub);
+    padding: 0 48px;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .ticker-item::before {
+    content: '◆';
+    color: var(--accent);
+    font-size: 8px;
+    flex-shrink: 0;
+  }
+  .ticker-toggle {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-muted);
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .ticker-toggle:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ─── ティッカー設定UI ─── */
+  .ticker-setting-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .ticker-setting-item textarea {
+    flex: 1;
+    font-size: 14px;
+    padding: 8px 10px;
+    min-height: 48px;
+    resize: vertical;
+  }
+
   body {
     background: var(--bg);
     color: var(--text);
@@ -2724,6 +2802,20 @@
     <div class="font-size-preview">← スライダーで調整すると即時反映されます</div>
   </div>
 
+  <!-- ティッカー設定 -->
+  <div style="margin-bottom:40px;">
+    <div style="font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px;">ティッカーメッセージ</div>
+    <div style="font-size:14px;color:var(--text-sub);margin-bottom:8px;">ナビバー下に流れるメッセージを設定します。意識したいルールや心得を入力してください。</div>
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;max-width:400px;">
+      <label style="font-size:14px;color:var(--text-sub);text-transform:none;margin-bottom:0;letter-spacing:0;">速度</label>
+      <input type="range" id="ticker-speed-slider" min="20" max="120" value="60" step="10"
+        oninput="applyTickerSpeed(this.value)" style="flex:1;accent-color:var(--accent);" />
+      <span style="font-size:13px;color:var(--text-muted);min-width:30px;" id="ticker-speed-val">普通</span>
+    </div>
+    <div id="settings-ticker-list"></div>
+    <button class="btn-add-link" id="btn-add-ticker" onclick="addTickerItem()">＋ メッセージを追加</button>
+  </div>
+
   <div id="settings-tag-categories"></div>
 
   <button class="btn-add-category" onclick="addTagCategory()">＋ カテゴリを追加</button>
@@ -3089,6 +3181,119 @@ function onLinkDragEnd(e) {
   });
 }
 
+// ── ティッカー ──
+let _tickerCache = [];
+let _tickerVisible = true;
+
+function loadTickerSettings() {
+  // 表示状態
+  _tickerVisible = localStorage.getItem('drc_ticker_visible') !== 'false';
+  const wrap = document.getElementById('ticker-wrap');
+  if (wrap) wrap.classList.toggle('hidden', !_tickerVisible);
+
+  // 速度
+  const speed = localStorage.getItem('drc_ticker_speed') || '60';
+  applyTickerSpeed(speed, false);
+}
+
+function toggleTicker() {
+  _tickerVisible = !_tickerVisible;
+  localStorage.setItem('drc_ticker_visible', _tickerVisible);
+  const wrap = document.getElementById('ticker-wrap');
+  if (wrap) wrap.classList.toggle('hidden', !_tickerVisible);
+}
+
+function applyTickerSpeed(val, save=true) {
+  const duration = Math.round(600 / val * 30); // 速度→秒数変換
+  const track = document.getElementById('ticker-track');
+  if (track) track.style.animationDuration = duration + 's';
+  if (save) localStorage.setItem('drc_ticker_speed', val);
+  const label = document.getElementById('ticker-speed-val');
+  if (label) {
+    label.textContent = val < 40 ? 'ゆっくり' : val > 80 ? '速い' : '普通';
+  }
+  const slider = document.getElementById('ticker-speed-slider');
+  if (slider) slider.value = val;
+}
+
+async function fetchTicker() {
+  if (!getGasUrl()) {
+    renderTicker([]);
+    return;
+  }
+  try {
+    const res  = await fetch(getGasUrl() + '?action=getTicker');
+    const data = await res.json();
+    if (data.status === 'ok') {
+      _tickerCache = data.items || [];
+      renderTicker(_tickerCache);
+    }
+  } catch(e) { renderTicker([]); }
+}
+
+async function pushTicker(items) {
+  _tickerCache = items;
+  renderTicker(items);
+  if (!getGasUrl()) return;
+  try {
+    await gasPost({ action: 'saveTicker', items });
+  } catch(e) { console.warn('ティッカー保存失敗:', e); }
+}
+
+function renderTicker(items) {
+  const track = document.getElementById('ticker-track');
+  if (!track) return;
+  if (!items.length) {
+    track.innerHTML = '';
+    return;
+  }
+  // 2セット分並べてループ感を出す
+  const html = items.map(t => `<span class="ticker-item">${escHtml(t)}</span>`).join('');
+  track.innerHTML = html + html;
+}
+
+function renderTickerSettings() {
+  const list   = document.getElementById('settings-ticker-list');
+  const addBtn = document.getElementById('btn-add-ticker');
+  if (!list) return;
+  if (addBtn) addBtn.style.display = _tickerCache.length >= 20 ? 'none' : 'block';
+
+  list.innerHTML = _tickerCache.map((item, i) => `
+    <div class="ticker-setting-item">
+      <textarea id="ticker-text-${i}" onchange="updateTickerItem(${i}, this.value)">${escHtml(item)}</textarea>
+      <button class="btn-link-del" onclick="deleteTickerItem(${i})" title="削除">×</button>
+    </div>
+  `).join('');
+
+  // 速度スライダー
+  const speed = localStorage.getItem('drc_ticker_speed') || '60';
+  applyTickerSpeed(speed, false);
+}
+
+function addTickerItem() {
+  if (_tickerCache.length >= 20) return;
+  pushTicker([..._tickerCache, '']);
+  renderTickerSettings();
+}
+
+let _tickerSaveTimer = null;
+function updateTickerItem(idx, value) {
+  _tickerCache[idx] = value;
+  renderTicker(_tickerCache);
+  clearTimeout(_tickerSaveTimer);
+  _tickerSaveTimer = setTimeout(() => {
+    if (getGasUrl()) gasPost({ action: 'saveTicker', items: _tickerCache });
+  }, 500);
+}
+
+function deleteTickerItem(idx) {
+  if (!confirm('このメッセージを削除しますか？')) return;
+  const items = [..._tickerCache];
+  items.splice(idx, 1);
+  pushTicker(items);
+  renderTickerSettings();
+}
+
 // ── テーマ・フォントサイズ ──
 const THEMES = ['dark','midnight','forest','charcoal','pure'];
 
@@ -3236,6 +3441,7 @@ const state = {
 document.addEventListener('DOMContentLoaded', async () => {
   // テーマ・フォントサイズを最初に適用（ちらつき防止）
   loadThemeSettings();
+  loadTickerSettings();
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('date').value = today;
   updateDateDisplay();
@@ -3249,6 +3455,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderConnectPage();
   rebuildTooltips();
   await fetchLinks();
+  await fetchTicker();
 
   if (!getGasUrl()) {
     updateGasStatus('demo');
@@ -3500,7 +3707,7 @@ function switchTab(name, el) {
   if (name === 'monthly') loadMonthlyData();
   if (name === 'yearly') loadYearlyData();
   if (name === 'tags') loadTagsTab();
-  if (name === 'settings') { renderSettingsPage(); renderLinksSettings(); renderGradeCriteriaUI(); updateThemeCardUI(); }
+  if (name === 'settings') { renderSettingsPage(); renderLinksSettings(); renderTickerSettings(); renderGradeCriteriaUI(); updateThemeCardUI(); }
   if (name === 'connect') renderConnectPage();
 }
 
