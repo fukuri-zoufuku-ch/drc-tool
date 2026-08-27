@@ -157,8 +157,15 @@
     position: relative;
   }
   .ticker-wrap.hidden { display: none; }
+  .ticker-outer {
+    overflow: hidden;
+    flex: 1;
+    height: 100%;
+    display: flex;
+    align-items: center;
+  }
   .ticker-track {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     white-space: nowrap;
     animation: ticker-scroll 60s linear infinite;
@@ -166,7 +173,7 @@
   }
   .ticker-track:hover { animation-play-state: paused; }
   @keyframes ticker-scroll {
-    0%   { transform: translateX(0); }
+    0%   { transform: translateX(0%); }
     100% { transform: translateX(-50%); }
   }
   .ticker-item {
@@ -2017,7 +2024,9 @@
 
 <!-- ティッカー -->
 <div class="ticker-wrap" id="ticker-wrap">
-  <div class="ticker-track" id="ticker-track"></div>
+  <div class="ticker-outer">
+    <div class="ticker-track" id="ticker-track"></div>
+  </div>
   <button class="ticker-toggle" onclick="toggleTicker()" title="非表示/表示">✕</button>
 </div>
 
@@ -3251,11 +3260,18 @@ function renderTicker(items) {
   if (!track) return;
   if (!items.length) {
     track.innerHTML = '';
+    track.style.animation = 'none';
     return;
   }
-  // 2セット分並べてループ感を出す
-  const html = items.map(t => `<span class="ticker-item">${escHtml(t)}</span>`).join('');
+  // 2セット並べてシームレスループ
+  const html = items.map(t => '<span class="ticker-item">' + escHtml(t) + '</span>').join('');
   track.innerHTML = html + html;
+  // アニメーションをリセットして再適用
+  track.style.animation = 'none';
+  void track.offsetWidth; // reflow強制
+  const speed    = Number(localStorage.getItem('drc_ticker_speed') || '60');
+  const duration = Math.round(600 / speed * 30);
+  track.style.animation = 'ticker-scroll ' + duration + 's linear infinite';
 }
 
 function renderTickerSettings() {
