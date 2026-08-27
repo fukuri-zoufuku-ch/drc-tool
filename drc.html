@@ -150,17 +150,17 @@
   .ticker-wrap {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    overflow: hidden;
     height: 36px;
     display: flex;
     align-items: center;
     position: relative;
+    overflow: hidden;
   }
   .ticker-wrap.hidden { display: none; }
   .ticker-outer {
-    overflow: hidden;
     flex: 1;
-    height: 100%;
+    overflow: hidden;
+    height: 36px;
     display: flex;
     align-items: center;
   }
@@ -168,13 +168,17 @@
     display: flex;
     align-items: center;
     white-space: nowrap;
-    animation: ticker-scroll 60s linear infinite;
     will-change: transform;
   }
-  .ticker-track:hover { animation-play-state: paused; }
+  .ticker-track.running {
+    animation: ticker-scroll var(--ticker-dur, 60s) linear infinite;
+  }
+  .ticker-track.running:hover {
+    animation-play-state: paused;
+  }
   @keyframes ticker-scroll {
-    0%   { transform: translateX(0%); }
-    100% { transform: translateX(-50%); }
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
   }
   .ticker-item {
     font-size: 13px;
@@ -3219,13 +3223,15 @@ function toggleTicker() {
 }
 
 function applyTickerSpeed(val, save=true) {
-  const duration = Math.round(600 / val * 30); // 速度→秒数変換
+  const duration = Math.round(600 / Number(val) * 30);
   const track = document.getElementById('ticker-track');
-  if (track) track.style.animationDuration = duration + 's';
+  if (track) {
+    track.style.setProperty('--ticker-dur', duration + 's');
+  }
   if (save) localStorage.setItem('drc_ticker_speed', val);
   const label = document.getElementById('ticker-speed-val');
   if (label) {
-    label.textContent = val < 40 ? 'ゆっくり' : val > 80 ? '速い' : '普通';
+    label.textContent = Number(val) < 40 ? 'ゆっくり' : Number(val) > 80 ? '速い' : '普通';
   }
   const slider = document.getElementById('ticker-speed-slider');
   if (slider) slider.value = val;
@@ -3258,20 +3264,30 @@ async function pushTicker(items) {
 function renderTicker(items) {
   const track = document.getElementById('ticker-track');
   if (!track) return;
-  if (!items.length) {
-    track.innerHTML = '';
-    track.style.animation = 'none';
-    return;
-  }
+
+  // クラスとアニメーションをリセット
+  track.classList.remove('running');
+  track.innerHTML = '';
+
+  if (!items.length) return;
+
   // 2セット並べてシームレスループ
-  const html = items.map(t => '<span class="ticker-item">' + escHtml(t) + '</span>').join('');
+  const html = items.map(function(t) {
+    return '<span class="ticker-item">' + escHtml(t) + '</span>';
+  }).join('');
   track.innerHTML = html + html;
-  // アニメーションをリセットして再適用
-  track.style.animation = 'none';
-  void track.offsetWidth; // reflow強制
+
+  // 速度設定
   const speed    = Number(localStorage.getItem('drc_ticker_speed') || '60');
   const duration = Math.round(600 / speed * 30);
-  track.style.animation = 'ticker-scroll ' + duration + 's linear infinite';
+  track.style.setProperty('--ticker-dur', duration + 's');
+
+  // 次フレームでアニメーション開始（DOM更新を確実に待つ）
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      track.classList.add('running');
+    });
+  });
 }
 
 function renderTickerSettings() {
