@@ -181,18 +181,21 @@
     to   { transform: translateX(-50%); }
   }
   .ticker-item {
-    font-size: 13px;
-    color: var(--text-sub);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--accent);
     padding: 0 48px;
     display: inline-flex;
     align-items: center;
     gap: 12px;
+    letter-spacing: 0.02em;
   }
   .ticker-item::before {
     content: '◆';
     color: var(--accent);
     font-size: 8px;
     flex-shrink: 0;
+    opacity: 0.6;
   }
   .ticker-toggle {
     position: absolute;
@@ -226,6 +229,19 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    cursor: grab;
+    transition: border-color 0.15s;
+  }
+  .ticker-setting-item:active { cursor: grabbing; }
+  .ticker-setting-item.dragging { opacity: 0.4; border-color: var(--accent); }
+  .ticker-setting-item.drag-over { border-color: var(--accent); background: var(--accent-dim); }
+  .ticker-setting-item.disabled { opacity: 0.5; }
+  .ticker-drag-handle {
+    color: var(--text-muted);
+    font-size: 18px;
+    cursor: grab;
+    flex-shrink: 0;
+    user-select: none;
   }
   .ticker-setting-item textarea {
     flex: 1;
@@ -234,6 +250,30 @@
     min-height: 48px;
     resize: vertical;
   }
+  .ticker-toggle-btn {
+    width: 44px;
+    height: 24px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s;
+    position: relative;
+  }
+  .ticker-toggle-btn.on { background: var(--accent); }
+  .ticker-toggle-btn.off { background: var(--border-strong); }
+  .ticker-toggle-btn::after {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    top: 3px;
+    transition: left 0.2s;
+  }
+  .ticker-toggle-btn.on::after { left: 23px; }
+  .ticker-toggle-btn.off::after { left: 3px; }
 
   body {
     background: var(--bg);
@@ -3246,7 +3286,10 @@ async function fetchTicker() {
     const res  = await fetch(getGasUrl() + '?action=getTicker');
     const data = await res.json();
     if (data.status === 'ok') {
-      _tickerCache = data.items || [];
+      // {text, enabled} 形式に正規化
+      _tickerCache = (data.items || []).map(item =>
+        typeof item === 'string' ? { text: item, enabled: true } : item
+      );
       renderTicker(_tickerCache);
     }
   } catch(e) { renderTicker([]); }
@@ -3257,7 +3300,7 @@ async function pushTicker(items) {
   renderTicker(items);
   if (!getGasUrl()) return;
   try {
-    await gasPost({ action: 'saveTicker', items });
+    await gasPost({ action: 'saveTicker', items: items.map(i => ({ text: i.text, enabled: i.enabled })) });
   } catch(e) { console.warn('ティッカー保存失敗:', e); }
 }
 
@@ -3265,24 +3308,21 @@ function renderTicker(items) {
   const track = document.getElementById('ticker-track');
   if (!track) return;
 
-  // クラスとアニメーションをリセット
   track.classList.remove('running');
   track.innerHTML = '';
 
-  if (!items.length) return;
+  const visible = items.filter(function(i) { return i.enabled !== false && String(i.text||'').trim(); });
+  if (!visible.length) return;
 
-  // 2セット並べてシームレスループ
-  const html = items.map(function(t) {
-    return '<span class="ticker-item">' + escHtml(t) + '</span>';
+  const html = visible.map(function(i) {
+    return '<span class="ticker-item">' + escHtml(i.text) + '</span>';
   }).join('');
   track.innerHTML = html + html;
 
-  // 速度設定
   const speed    = Number(localStorage.getItem('drc_ticker_speed') || '60');
   const duration = Math.round(600 / speed * 30);
   track.style.setProperty('--ticker-dur', duration + 's');
 
-  // 次フレームでアニメーション開始（DOM更新を確実に待つ）
   requestAnimationFrame(function() {
     requestAnimationFrame(function() {
       track.classList.add('running');
@@ -3296,38 +3336,80 @@ function renderTickerSettings() {
   if (!list) return;
   if (addBtn) addBtn.style.display = _tickerCache.length >= 20 ? 'none' : 'block';
 
-  list.innerHTML = _tickerCache.map((item, i) => `
-    <div class="ticker-setting-item">
-      <textarea id="ticker-text-${i}" onchange="updateTickerItem(${i}, this.value)">${escHtml(item)}</textarea>
+  list.innerHTML = _tickerCache.map((item, i) => {
+    const enabled = item.enabled !== false;
+    const text    = item.text || '';
+    return `<div class="ticker-setting-item ${enabled ? '' : 'disabled'}"
+      draggable="true"
+      ondragstart="onTickerDragStart(event,${i})"
+      ondragover="onTickerDragOver(event,${i})"
+      ondrop="onTickerDrop(event,${i})"
+      ondragleave="this.classList.remove('drag-over')"
+      ondragend="this.classList.remove('dragging','drag-over')"
+      data-idx="${i}">
+      <span class="ticker-drag-handle">⠿</span>
+      <textarea id="ticker-text-${i}" onchange="updateTickerItem(${i}, this.value)">${escHtml(text)}</textarea>
+      <button class="ticker-toggle-btn ${enabled ? 'on' : 'off'}" onclick="toggleTickerItem(${i})" title="${enabled ? '表示中' : '非表示'}"></button>
       <button class="btn-link-del" onclick="deleteTickerItem(${i})" title="削除">×</button>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 
-  // 速度スライダー
   const speed = localStorage.getItem('drc_ticker_speed') || '60';
   applyTickerSpeed(speed, false);
 }
 
 function addTickerItem() {
   if (_tickerCache.length >= 20) return;
-  pushTicker([..._tickerCache, '']);
+  pushTicker([..._tickerCache, { text: '', enabled: true }]);
   renderTickerSettings();
 }
 
 let _tickerSaveTimer = null;
 function updateTickerItem(idx, value) {
-  _tickerCache[idx] = value;
+  _tickerCache[idx].text = value;
   renderTicker(_tickerCache);
   clearTimeout(_tickerSaveTimer);
-  _tickerSaveTimer = setTimeout(() => {
+  _tickerSaveTimer = setTimeout(function() {
     if (getGasUrl()) gasPost({ action: 'saveTicker', items: _tickerCache });
   }, 500);
+}
+
+function toggleTickerItem(idx) {
+  _tickerCache[idx].enabled = !(_tickerCache[idx].enabled !== false);
+  pushTicker([..._tickerCache]);
+  renderTickerSettings();
 }
 
 function deleteTickerItem(idx) {
   if (!confirm('このメッセージを削除しますか？')) return;
   const items = [..._tickerCache];
   items.splice(idx, 1);
+  pushTicker(items);
+  renderTickerSettings();
+}
+
+// ドラッグ&ドロップ
+let _tickerDragIdx = null;
+function onTickerDragStart(e, idx) {
+  _tickerDragIdx = idx;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.stopPropagation();
+}
+function onTickerDragOver(e, idx) {
+  e.preventDefault();
+  e.stopPropagation();
+  document.querySelectorAll('.ticker-setting-item').forEach(el => el.classList.remove('drag-over'));
+  e.currentTarget.classList.add('drag-over');
+}
+function onTickerDrop(e, idx) {
+  e.preventDefault();
+  e.stopPropagation();
+  if (_tickerDragIdx === null || _tickerDragIdx === idx) return;
+  const items = [..._tickerCache];
+  const moved = items.splice(_tickerDragIdx, 1)[0];
+  items.splice(idx, 0, moved);
+  _tickerDragIdx = null;
   pushTicker(items);
   renderTickerSettings();
 }

@@ -505,18 +505,25 @@ function getTicker() {
   if (rows.length <= 1) return { status: 'ok', items: [] };
   var items = rows.slice(1)
     .filter(function(r) { return String(r[0]).trim() !== ''; })
-    .map(function(r) { return String(r[0]); });
+    .map(function(r) {
+      return {
+        text:    String(r[0]),
+        enabled: String(r[1]).toUpperCase() !== 'FALSE'
+      };
+    });
   return { status: 'ok', items: items };
 }
 
 function saveTicker(items) {
   var sheet = getOrCreateSheet(SHEET_TICKER);
   sheet.clearContents();
-  sheet.appendRow(['message']);
-  var headerRange = sheet.getRange(1,1,1,1);
+  sheet.appendRow(['message','enabled']);
+  var headerRange = sheet.getRange(1,1,1,2);
   headerRange.setBackground('#1a1a2e').setFontColor('#c8a96e').setFontWeight('bold');
-  (items || []).filter(function(t){ return t.trim(); }).forEach(function(item) {
-    sheet.appendRow([item]);
+  (items || []).forEach(function(item) {
+    var text    = typeof item === 'string' ? item : (item.text || '');
+    var enabled = typeof item === 'string' ? true : (item.enabled !== false);
+    if (text.trim()) sheet.appendRow([text, enabled ? 'TRUE' : 'FALSE']);
   });
   return { status: 'ok' };
 }
