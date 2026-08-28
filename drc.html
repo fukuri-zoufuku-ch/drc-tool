@@ -1998,6 +1998,81 @@
   .nav-gas-label.connected { color: var(--green); }
   .nav-gas-label.error { color: var(--red); }
 
+  /* ─── タイマー ─── */
+  .nav-timer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 16px 0 0;
+    margin-right: 16px;
+    border-right: 1px solid var(--border);
+  }
+  .nav-timer-display {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    min-width: 52px;
+    text-align: center;
+    letter-spacing: 0.05em;
+    font-variant-numeric: tabular-nums;
+  }
+  .nav-timer-display.running { color: var(--accent); }
+  .nav-timer-display.warning { color: var(--red); animation: timer-pulse 1s ease-in-out infinite; }
+  @keyframes timer-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .nav-timer-display.finished { color: var(--red); }
+  .timer-quick-btns {
+    display: flex;
+    gap: 4px;
+  }
+  .timer-quick-btn {
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-muted);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .timer-quick-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .timer-ctrl-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-sub);
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .timer-ctrl-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .timer-ctrl-btn.active { background: var(--accent); border-color: var(--accent); color: #000; }
+
+  /* タイマー終了時のオーバーレイ */
+  .timer-alert-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(224,85,85,0.15);
+    z-index: 900;
+    pointer-events: none;
+    animation: timer-alert-flash 0.5s ease-in-out 3;
+  }
+  .timer-alert-overlay.show { display: block; }
+  @keyframes timer-alert-flash {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 1; }
+  }
+
   /* ─── ツールチップ ─── */
   .grade-btn-wrap {
     position: relative;
@@ -2060,11 +2135,26 @@
   <button class="tab" onclick="switchTab('settings',this)">設定</button>
   <button class="tab" onclick="switchTab('connect',this)">連携設定</button>
   <button class="tab" onclick="switchTab('guide',this)">使い方</button>
+  <!-- タイマー -->
+  <div class="nav-timer" id="nav-timer">
+    <div class="timer-quick-btns">
+      <button class="timer-quick-btn" onclick="setTimer(5)">5分</button>
+      <button class="timer-quick-btn" onclick="setTimer(10)">10分</button>
+      <button class="timer-quick-btn" onclick="setTimer(15)">15分</button>
+    </div>
+    <div class="nav-timer-display" id="timer-display">--:--</div>
+    <button class="timer-ctrl-btn" id="timer-start-btn" onclick="toggleTimer()" title="開始/一時停止">▶</button>
+    <button class="timer-ctrl-btn" onclick="resetTimer()" title="リセット">↺</button>
+  </div>
+
   <div class="nav-gas-status">
     <div class="gas-dot" id="gas-dot"></div>
     <span class="nav-gas-label" id="gas-status-text">未設定</span>
   </div>
 </nav>
+
+<!-- タイマー終了オーバーレイ -->
+<div class="timer-alert-overlay" id="timer-alert-overlay"></div>
 
 <!-- ティッカー -->
 <div class="ticker-wrap" id="ticker-wrap">
@@ -3414,6 +3504,120 @@ function onTickerDrop(e, idx) {
   renderTickerSettings();
 }
 
+// ── タイマー ──
+let _timerTotal    = 0;   // 設定秒数
+let _timerLeft     = 0;   // 残り秒数
+let _timerInterval = null;
+let _timerRunning  = false;
+
+function setTimer(minutes) {
+  resetTimer();
+  _timerTotal = minutes * 60;
+  _timerLeft  = _timerTotal;
+  updateTimerDisplay();
+}
+
+function toggleTimer() {
+  if (!_timerLeft) return;
+  if (_timerRunning) {
+    pauseTimer();
+  } else {
+    startTimer();
+  }
+}
+
+function startTimer() {
+  if (!_timerLeft || _timerRunning) return;
+  _timerRunning = true;
+  document.getElementById('timer-start-btn').textContent = '⏸';
+  document.getElementById('timer-start-btn').classList.add('active');
+  _timerInterval = setInterval(function() {
+    _timerLeft--;
+    updateTimerDisplay();
+    if (_timerLeft <= 0) {
+      clearInterval(_timerInterval);
+      _timerRunning = false;
+      onTimerFinished();
+    }
+  }, 1000);
+}
+
+function pauseTimer() {
+  clearInterval(_timerInterval);
+  _timerRunning = false;
+  document.getElementById('timer-start-btn').textContent = '▶';
+  document.getElementById('timer-start-btn').classList.remove('active');
+}
+
+function resetTimer() {
+  pauseTimer();
+  _timerLeft = _timerTotal;
+  updateTimerDisplay();
+  document.getElementById('timer-display').className = 'nav-timer-display';
+}
+
+function updateTimerDisplay() {
+  const el  = document.getElementById('timer-display');
+  if (!el) return;
+  if (!_timerTotal) { el.textContent = '--:--'; return; }
+  const m   = Math.floor(_timerLeft / 60);
+  const s   = _timerLeft % 60;
+  el.textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  // 残り1分以下で点滅
+  if (_timerLeft > 0 && _timerLeft <= 60 && _timerRunning) {
+    el.className = 'nav-timer-display warning';
+  } else if (_timerRunning) {
+    el.className = 'nav-timer-display running';
+  } else if (_timerLeft === 0 && _timerTotal > 0) {
+    el.className = 'nav-timer-display finished';
+  } else {
+    el.className = 'nav-timer-display';
+  }
+}
+
+function onTimerFinished() {
+  const el = document.getElementById('timer-display');
+  if (el) { el.textContent = '終了！'; el.className = 'nav-timer-display finished'; }
+  document.getElementById('timer-start-btn').textContent = '▶';
+  document.getElementById('timer-start-btn').classList.remove('active');
+
+  // 画面フラッシュ
+  const overlay = document.getElementById('timer-alert-overlay');
+  if (overlay) {
+    overlay.classList.add('show');
+    setTimeout(function() { overlay.classList.remove('show'); }, 1600);
+  }
+
+  // 通知音（Web Audio API）
+  try {
+    const ctx  = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.3, 0.6].forEach(function(t) {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.3, ctx.currentTime + t);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.25);
+      osc.start(ctx.currentTime + t);
+      osc.stop(ctx.currentTime + t + 0.25);
+    });
+  } catch(e) {}
+
+  // ブラウザ通知
+  if (Notification && Notification.permission === 'granted') {
+    new Notification('DRC タイマー終了', { body: 'タイマーが終了しました。トレード前に深呼吸を。', icon: '' });
+  }
+}
+
+// 通知許可を起動時にリクエスト
+function requestNotificationPermission() {
+  if (Notification && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
 // ── テーマ・フォントサイズ ──
 const THEMES = ['dark','midnight','forest','charcoal','pure'];
 
@@ -3562,6 +3766,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // テーマ・フォントサイズを最初に適用（ちらつき防止）
   loadThemeSettings();
   loadTickerSettings();
+  requestNotificationPermission();
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('date').value = today;
   updateDateDisplay();
