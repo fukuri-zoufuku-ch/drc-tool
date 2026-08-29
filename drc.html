@@ -2142,6 +2142,10 @@
       <button class="timer-quick-btn" onclick="setTimer(10)">10分</button>
       <button class="timer-quick-btn" onclick="setTimer(15)">15分</button>
     </div>
+    <div style="display:flex;flex-direction:column;gap:2px;">
+      <button class="timer-ctrl-btn" onclick="adjustTimer(1)" title="1分追加" style="width:22px;height:16px;font-size:9px;border-radius:3px;">▲</button>
+      <button class="timer-ctrl-btn" onclick="adjustTimer(-1)" title="1分減らす" style="width:22px;height:16px;font-size:9px;border-radius:3px;">▼</button>
+    </div>
     <div class="nav-timer-display" id="timer-display">--:--</div>
     <button class="timer-ctrl-btn" id="timer-start-btn" onclick="toggleTimer()" title="開始/一時停止">▶</button>
     <button class="timer-ctrl-btn" onclick="resetTimer()" title="リセット">↺</button>
@@ -3547,6 +3551,17 @@ function pauseTimer() {
   _timerRunning = false;
   document.getElementById('timer-start-btn').textContent = '▶';
   document.getElementById('timer-start-btn').classList.remove('active');
+}
+
+function adjustTimer(delta) {
+  // 実行中は残り時間を増減、停止中は設定時間を増減
+  if (_timerRunning) {
+    _timerLeft = Math.max(0, _timerLeft + delta * 60);
+  } else {
+    _timerTotal = Math.max(60, _timerTotal + delta * 60);
+    _timerLeft  = _timerTotal;
+  }
+  updateTimerDisplay();
 }
 
 function resetTimer() {
