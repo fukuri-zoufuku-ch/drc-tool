@@ -2057,6 +2057,140 @@
   .timer-ctrl-btn:hover { border-color: var(--accent); color: var(--accent); }
   .timer-ctrl-btn.active { background: var(--accent); border-color: var(--accent); color: #000; }
 
+  /* ─── リスクリワード ─── */
+  .rr-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .rr-direction-group { display: flex; gap: 8px; margin-bottom: 10px; }
+  .rr-direction-btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: var(--radius);
+    border: 2px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-muted);
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .rr-direction-btn:hover { border-color: var(--border-strong); color: var(--text); }
+  .rr-direction-btn.buy.selected {
+    background: rgba(76,175,125,0.25);
+    border-color: var(--green);
+    color: var(--green);
+    box-shadow: 0 0 0 1px var(--green);
+  }
+  .rr-direction-btn.sell.selected {
+    background: var(--red-dim);
+    border-color: var(--red);
+    color: var(--red);
+    box-shadow: 0 0 0 1px var(--red);
+  }
+  .rr-result {
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-top: 8px;
+    display: none;
+  }
+  .rr-result.show { display: block; }
+  .rr-result-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    text-align: center;
+  }
+  .rr-result-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+  }
+  .rr-result-val { font-size: 16px; font-weight: 700; }
+  .rr-result-val.good { color: var(--green); }
+  .rr-result-val.bad  { color: var(--red); }
+  .rr-ratio { font-size: 20px; font-weight: 800; color: var(--accent); }
+
+  /* ─── Gratitudeセクション ─── */
+  .gratitude-check-wrap {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin-top: 16px;
+  }
+  .gratitude-check-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .gratitude-check-box {
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--border-strong);
+    border-radius: 5px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .gratitude-check-item.checked .gratitude-check-box {
+    background: var(--green);
+    border-color: var(--green);
+  }
+  .gratitude-check-item.checked .gratitude-check-box::after {
+    content: '';
+    width: 12px;
+    height: 7px;
+    border-left: 2.5px solid #000;
+    border-bottom: 2.5px solid #000;
+    transform: rotate(-45deg) translateY(-1px);
+    display: block;
+  }
+  .gratitude-check-label {
+    font-size: 15px;
+    color: var(--text);
+    line-height: 1.6;
+    flex: 1;
+  }
+  .gratitude-example {
+    margin-top: 14px;
+    padding: 12px 16px;
+    background: var(--surface-3);
+    border-left: 3px solid var(--green);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    font-size: 14px;
+    color: var(--text-sub);
+    line-height: 1.8;
+  }
+  .gratitude-example .ex-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+  .gratitude-example .ex-before { color: var(--text-sub); }
+  .gratitude-example .ex-after  { color: var(--green); font-weight: 500; }
+  .gratitude-warn {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--accent);
+    display: none;
+  }
+  .gratitude-warn.show { display: block; }
+
   /* タイマー終了時のオーバーレイ */
   .timer-alert-overlay {
     display: none;
