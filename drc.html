@@ -2594,6 +2594,47 @@
     </div>
   </div>
 
+  <!-- 10. Gratitude -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🌱</div>
+      <div>
+        <div class="section-title">今日の充足・感謝（Gratitude）</div>
+        <div class="section-sub">欠乏ではなく充足で一日を締めくくる</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>充足度（1〜10）</label>
+      <div class="slider-wrap">
+        <span style="font-size:13px;color:var(--text-muted);">1</span>
+        <input type="range" id="gratitude-score" min="1" max="10" value="5"
+          oninput="document.getElementById('gratitude-score-val').textContent=this.value" />
+        <span style="font-size:13px;color:var(--text-muted);">10</span>
+        <span class="slider-val" id="gratitude-score-val" style="color:var(--green);">5</span>
+      </div>
+    </div>
+
+    <div class="gratitude-check-wrap">
+      <div class="gratitude-check-item" id="gratitude-check-item" onclick="toggleGratitudeCheck()">
+        <div class="gratitude-check-box"></div>
+        <div class="gratitude-check-label">
+          プレイバックと気づき・マントラは、充足を強める内容になっていますか？
+        </div>
+      </div>
+
+      <div class="gratitude-example">
+        <div class="ex-label">例）</div>
+        <div class="ex-before">自制する。</div>
+        <div class="ex-after">→ 今日できた「衝動を一度止める」を、明日はもう1回増やす。</div>
+      </div>
+
+      <div class="gratitude-warn" id="gratitude-warn">
+        ⚠ 充足を強める視点で振り返りを書けているか、もう一度確認してみてください。
+      </div>
+    </div>
+  </div>
+
   <!-- 送信 -->
   <div class="submit-wrap">
     <div class="submit-row">
@@ -3841,6 +3882,15 @@ document.addEventListener('change', async e => {
 });
 
 // ── 削除ボタン表示制御 ──
+// ── Gratitude ──
+function toggleGratitudeCheck() {
+  const item = document.getElementById('gratitude-check-item');
+  const warn = document.getElementById('gratitude-warn');
+  item.classList.toggle('checked');
+  if (warn) warn.classList.remove('show');
+}
+
+// ── 削除ボタン表示 ──
 function showDeleteBtn(visible) {
   const btn = document.getElementById('btn-delete');
   if (btn) btn.style.display = visible ? 'block' : 'none';
@@ -3980,6 +4030,14 @@ function fillForm(r) {
   // マントラ
   document.getElementById('mantra-today').value    = v('今日の言葉');
   document.getElementById('mantra-tomorrow').value = v('明日への言葉');
+  const gScore = parseInt(v('充足度')) || 5;
+  document.getElementById('gratitude-score').value = gScore;
+  document.getElementById('gratitude-score-val').textContent = gScore;
+  const gItem = document.getElementById('gratitude-check-item');
+  if (gItem) {
+    const checked = v('充足チェック') === 'TRUE' || v('充足チェック') === true;
+    gItem.classList.toggle('checked', checked);
+  }
 
 }
 
@@ -4018,6 +4076,12 @@ function clearForm(date) {
   document.getElementById('action').value       = '';
   document.getElementById('mantra-today').value    = '';
   document.getElementById('mantra-tomorrow').value = '';
+  document.getElementById('gratitude-score').value = 5;
+  document.getElementById('gratitude-score-val').textContent = '5';
+  const gItem = document.getElementById('gratitude-check-item');
+  if (gItem) gItem.classList.remove('checked');
+  const gWarn = document.getElementById('gratitude-warn');
+  if (gWarn) gWarn.classList.remove('show');
 
   // FOMOチェッククリア
   document.querySelectorAll('.fomo-item').forEach(el => el.classList.remove('checked'));
@@ -4604,6 +4668,8 @@ function collectFormData() {
     action: document.getElementById('action').value.trim(),
     mantra_today: document.getElementById('mantra-today').value.trim(),
     mantra_tomorrow: document.getElementById('mantra-tomorrow').value.trim(),
+    gratitude_score: parseInt(document.getElementById('gratitude-score').value),
+    gratitude_checked: document.getElementById('gratitude-check-item').classList.contains('checked'),
   };
 }
 
@@ -4613,6 +4679,14 @@ async function submitDRC() {
 
   if (!data.date) { showStatus('日付を入力してください', 'error'); return; }
   if (!data.grade_overall) { showStatus('総合評価を選択してください', 'error'); return; }
+
+  // Gratitudeチェック未確認の場合は警告（保存は可能）
+  if (!data.gratitude_checked) {
+    const warn = document.getElementById('gratitude-warn');
+    if (warn) warn.classList.add('show');
+    // 警告を見せてからも続行可能（0.8秒待って保存）
+    await new Promise(r => setTimeout(r, 800));
+  }
 
   const btn = document.getElementById('btn-submit');
   btn.disabled = true;
