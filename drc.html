@@ -4010,6 +4010,20 @@ function fillForm(r) {
     if (el_pnl)       el_pnl.value       = v(pnl);
     if (el_analysis)  el_analysis.value  = v(analysis);
     if (el_chartNote) el_chartNote.value = v(chartNote);
+    // RR項目
+    const entryKeys     = ['建値①','建値②','建値③','建値④','建値⑤'];
+    const targetKeys    = ['目標値①','目標値②','目標値③','目標値④','目標値⑤'];
+    const stoplossKeys  = ['損切①','損切②','損切③','損切④','損切⑤'];
+    const directionKeys = ['方向①','方向②','方向③','方向④','方向⑤'];
+    const entryEl    = document.getElementById('trade-entry-' + i);
+    const targetEl   = document.getElementById('trade-target-' + i);
+    const slEl       = document.getElementById('trade-stoploss-' + i);
+    if (entryEl)   entryEl.value   = v(entryKeys[i])    || '';
+    if (targetEl)  targetEl.value  = v(targetKeys[i])   || '';
+    if (slEl)      slEl.value      = v(stoplossKeys[i]) || '';
+    const dir = v(directionKeys[i]) || '';
+    if (dir) selectDirection(i, dir);
+    calcRR(i);
     // タグ復元
     const tagStr = v(tags);
     state.tradeTags[i] = new Set(tagStr ? tagStr.split(',').map(t => t.trim()).filter(Boolean) : []);
@@ -4090,10 +4104,17 @@ function clearForm(date) {
   for (let i = 0; i < 5; i++) {
     state.tradeTags[i]  = new Set();
     state.tradeImages[i] = [];
-    ['trade-ticker-','trade-pnl-','trade-analysis-','trade-chart-note-'].forEach(prefix => {
+    ['trade-ticker-','trade-pnl-','trade-analysis-','trade-chart-note-','trade-entry-','trade-target-','trade-stoploss-'].forEach(prefix => {
       const el = document.getElementById(prefix + i);
       if (el) el.value = '';
     });
+    _tradeDirection[i] = '';
+    const buyBtn = document.getElementById('rr-buy-' + i);
+    const sellBtn = document.getElementById('rr-sell-' + i);
+    if (buyBtn) buyBtn.classList.remove('selected');
+    if (sellBtn) sellBtn.classList.remove('selected');
+    const rrResult = document.getElementById('rr-result-' + i);
+    if (rrResult) rrResult.classList.remove('show');
     const previews = document.getElementById('img-previews-' + i);
     if (previews) previews.innerHTML = '';
     renderTradeTagUI(i);
@@ -4154,6 +4175,49 @@ function buildTradePanels() {
           </div>
         </div>
       </div>
+
+      <!-- 事前計画・RR -->
+      <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;">
+        <div style="font-size:13px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;">事前計画 / リスクリワード</div>
+        <div class="field" style="margin-bottom:10px;">
+          <label>売買区別</label>
+          <div class="rr-direction-group">
+            <button class="rr-direction-btn buy" id="rr-buy-${i}" onclick="selectDirection(${i},'buy')">買建 ▲</button>
+            <button class="rr-direction-btn sell" id="rr-sell-${i}" onclick="selectDirection(${i},'sell')">売建 ▼</button>
+          </div>
+        </div>
+        <div class="rr-grid">
+          <div class="field" style="margin-bottom:0;">
+            <label>建値（円）</label>
+            <input type="number" id="trade-entry-${i}" placeholder="例: 40000" oninput="calcRR(${i})" />
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label>目標値（円）</label>
+            <input type="number" id="trade-target-${i}" placeholder="例: 41000" oninput="calcRR(${i})" />
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label>損切ライン（円）</label>
+            <input type="number" id="trade-stoploss-${i}" placeholder="例: 39500" oninput="calcRR(${i})" />
+          </div>
+        </div>
+        <div class="rr-result" id="rr-result-${i}">
+          <div class="rr-result-grid">
+            <div>
+              <div class="rr-result-label">リスク</div>
+              <div class="rr-result-val bad" id="rr-risk-${i}">--</div>
+            </div>
+            <div>
+              <div class="rr-result-label">リワード</div>
+              <div class="rr-result-val good" id="rr-reward-${i}">--</div>
+            </div>
+            <div>
+              <div class="rr-result-label">RR比</div>
+              <div class="rr-ratio" id="rr-ratio-${i}">--</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="field">
         <label>トレード分析</label>
         <textarea id="trade-analysis-${i}" rows="5" placeholder="エントリー根拠、判断の経緯、反省点..."></textarea>
@@ -4230,6 +4294,51 @@ function renderPreviews(tradeIdx) {
 function removeImage(tradeIdx, imgIdx) {
   state.tradeImages[tradeIdx].splice(imgIdx, 1);
   renderPreviews(tradeIdx);
+}
+
+// ── リスクリワード計算 ──
+const _tradeDirection = ['', '', '', '', '']; // 'buy' or 'sell'
+
+function selectDirection(i, dir) {
+  _tradeDirection[i] = dir;
+  document.getElementById('rr-buy-' + i).classList.toggle('selected', dir === 'buy');
+  document.getElementById('rr-sell-' + i).classList.toggle('selected', dir === 'sell');
+  calcRR(i);
+}
+
+function calcRR(i) {
+  const entry    = parseFloat(document.getElementById('trade-entry-' + i).value);
+  const target   = parseFloat(document.getElementById('trade-target-' + i).value);
+  const stoploss = parseFloat(document.getElementById('trade-stoploss-' + i).value);
+  const dir      = _tradeDirection[i];
+  const result   = document.getElementById('rr-result-' + i);
+
+  if (!entry || !target || !stoploss || !dir) {
+    if (result) result.classList.remove('show');
+    return;
+  }
+
+  let risk, reward;
+  if (dir === 'buy') {
+    risk   = entry - stoploss;
+    reward = target - entry;
+  } else {
+    risk   = stoploss - entry;
+    reward = entry - target;
+  }
+
+  if (risk <= 0 || reward <= 0) {
+    if (result) result.classList.remove('show');
+    return;
+  }
+
+  const ratio = (reward / risk).toFixed(2);
+  document.getElementById('rr-risk-' + i).textContent   = '¥' + Math.round(risk).toLocaleString();
+  document.getElementById('rr-reward-' + i).textContent = '¥' + Math.round(reward).toLocaleString();
+  const ratioEl = document.getElementById('rr-ratio-' + i);
+  ratioEl.textContent = '1 : ' + ratio;
+  ratioEl.style.color = parseFloat(ratio) >= 2 ? 'var(--green)' : parseFloat(ratio) >= 1 ? 'var(--accent)' : 'var(--red)';
+  if (result) result.classList.add('show');
 }
 
 // ── トレードタグUI生成 ──
