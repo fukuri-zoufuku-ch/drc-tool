@@ -388,7 +388,6 @@ function buildDRCRow(data, imageUrls) {
  * DRCシートのヘッダーを初回のみ書き込む
  */
 function ensureDRCHeader(sheet) {
-  if (sheet.getLastRow() > 0) return;
   const headers = [
     // 基本
     '日付','総合評価','P&L',
@@ -417,8 +416,18 @@ function ensureDRCHeader(sheet) {
     // 管理
     '保存日時',
   ];
-  sheet.appendRow(headers);
-  // ヘッダー行を固定・装飾
+
+  if (sheet.getLastRow() === 0) {
+    // シートが空なら追記
+    sheet.appendRow(headers);
+  } else {
+    // 既存ヘッダーと列数が違う場合は1行目を上書き
+    const existingHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    if (existingHeaders.length !== headers.length || existingHeaders[0] !== headers[0]) {
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    }
+  }
+  // ヘッダー行を装飾
   const headerRange = sheet.getRange(1, 1, 1, headers.length);
   headerRange.setBackground('#1a1a2e').setFontColor('#c8a96e').setFontWeight('bold');
   sheet.setFrozenRows(1);
