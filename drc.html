@@ -4869,12 +4869,23 @@ function collectFormData() {
 
   const trades = [];
   for (let i = 0; i < 5; i++) {
-    const ticker = document.getElementById('trade-ticker-' + i).value.trim();
-    const pnl = document.getElementById('trade-pnl-' + i).value;
-    const analysis = document.getElementById('trade-analysis-' + i).value.trim();
-    const chartNote = document.getElementById('trade-chart-note-' + i).value.trim();
-    if (ticker || pnl || analysis) {
-      trades.push({ ticker, pnl: pnl ? parseInt(pnl) : null, analysis, chartNote, images: state.tradeImages[i], tags: Array.from(state.tradeTags[i]).join(',') });
+    const ticker    = document.getElementById('trade-ticker-'    + i).value.trim();
+    const pnl       = document.getElementById('trade-pnl-'       + i).value;
+    const analysis  = document.getElementById('trade-analysis-'  + i).value.trim();
+    const chartNote = document.getElementById('trade-chart-note-'+ i).value.trim();
+    const entry     = document.getElementById('trade-entry-'     + i).value;
+    const target    = document.getElementById('trade-target-'    + i).value;
+    const stoploss  = document.getElementById('trade-stoploss-'  + i).value;
+    const direction = _tradeDirection[i] || '';
+    if (ticker || pnl || analysis || entry || target || stoploss) {
+      trades.push({
+        ticker, pnl: pnl ? parseInt(pnl) : null, analysis, chartNote,
+        images: state.tradeImages[i], tags: Array.from(state.tradeTags[i]).join(','),
+        direction,
+        entry:    entry    ? parseFloat(entry)    : null,
+        target:   target   ? parseFloat(target)   : null,
+        stoploss: stoploss ? parseFloat(stoploss) : null,
+      });
     }
   }
 

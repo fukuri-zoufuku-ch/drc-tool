@@ -362,11 +362,11 @@ function buildDRCRow(data, imageUrls) {
     data.pm_size       || '',
     data.pm_comment    || '',
     // トレード①〜⑤
-    t(0).ticker || '', t(0).pnl || '', t(0).analysis || '', t(0).chartNote || '', t(0).tags || '', imageUrls[0] || '',
-    t(1).ticker || '', t(1).pnl || '', t(1).analysis || '', t(1).chartNote || '', t(1).tags || '', imageUrls[1] || '',
-    t(2).ticker || '', t(2).pnl || '', t(2).analysis || '', t(2).chartNote || '', t(2).tags || '', imageUrls[2] || '',
-    t(3).ticker || '', t(3).pnl || '', t(3).analysis || '', t(3).chartNote || '', t(3).tags || '', imageUrls[3] || '',
-    t(4).ticker || '', t(4).pnl || '', t(4).analysis || '', t(4).chartNote || '', t(4).tags || '', imageUrls[4] || '',
+    t(0).ticker||'', t(0).pnl||'', t(0).analysis||'', t(0).chartNote||'', t(0).tags||'', imageUrls[0]||'', t(0).direction||'', t(0).entry||'', t(0).target||'', t(0).stoploss||'',
+    t(1).ticker||'', t(1).pnl||'', t(1).analysis||'', t(1).chartNote||'', t(1).tags||'', imageUrls[1]||'', t(1).direction||'', t(1).entry||'', t(1).target||'', t(1).stoploss||'',
+    t(2).ticker||'', t(2).pnl||'', t(2).analysis||'', t(2).chartNote||'', t(2).tags||'', imageUrls[2]||'', t(2).direction||'', t(2).entry||'', t(2).target||'', t(2).stoploss||'',
+    t(3).ticker||'', t(3).pnl||'', t(3).analysis||'', t(3).chartNote||'', t(3).tags||'', imageUrls[3]||'', t(3).direction||'', t(3).entry||'', t(3).target||'', t(3).stoploss||'',
+    t(4).ticker||'', t(4).pnl||'', t(4).analysis||'', t(4).chartNote||'', t(4).tags||'', imageUrls[4]||'', t(4).direction||'', t(4).entry||'', t(4).target||'', t(4).stoploss||'',
     // プレイバック
     data.insight       || '',
     data.good          || '',
@@ -376,6 +376,9 @@ function buildDRCRow(data, imageUrls) {
     // マントラ
     data.mantra_today     || '',
     data.mantra_tomorrow  || '',
+    // Gratitude
+    data.gratitude_score   || 5,
+    data.gratitude_checked ? 'TRUE' : 'FALSE',
     // 保存日時
     Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd HH:mm:ss'),
   ];
@@ -400,15 +403,17 @@ function ensureDRCHeader(sheet) {
     // 後場
     '後場評価','後場セットアップ','後場PB裁量','後場サイズ','後場コメント',
     // トレード①〜⑤
-    '銘柄①','損益①','分析①','チャート分析①','タグ①','画像①',
-    '銘柄②','損益②','分析②','チャート分析②','タグ②','画像②',
-    '銘柄③','損益③','分析③','チャート分析③','タグ③','画像③',
-    '銘柄④','損益④','分析④','チャート分析④','タグ④','画像④',
-    '銘柄⑤','損益⑤','分析⑤','チャート分析⑤','タグ⑤','画像⑤',
+    '銘柄①','損益①','分析①','チャート分析①','タグ①','画像①','方向①','建値①','目標値①','損切①',
+    '銘柄②','損益②','分析②','チャート分析②','タグ②','画像②','方向②','建値②','目標値②','損切②',
+    '銘柄③','損益③','分析③','チャート分析③','タグ③','画像③','方向③','建値③','目標値③','損切③',
+    '銘柄④','損益④','分析④','チャート分析④','タグ④','画像④','方向④','建値④','目標値④','損切④',
+    '銘柄⑤','損益⑤','分析⑤','チャート分析⑤','タグ⑤','画像⑤','方向⑤','建値⑤','目標値⑤','損切⑤',
     // プレイバック
     '気づき','良かった点','悪かった点','感情の動き','今日から対応',
     // マントラ
     '今日の言葉','明日への言葉',
+    // Gratitude
+    '充足度','充足チェック',
     // 管理
     '保存日時',
   ];
