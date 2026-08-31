@@ -4971,8 +4971,10 @@ async function submitDRC() {
     // Step2: 画像を1枚ずつ個別送信
     const allImages = [];
     (data.trades || []).forEach((trade, ti) => {
+      // originalIdxがあればそれを使用（トレード番号と配列インデックスのずれを防ぐ）
+      const tradeIdx = trade.originalIdx !== undefined ? trade.originalIdx : ti;
       (trade.images || []).forEach((img, ii) => {
-        allImages.push({ tradeIdx: ti, imgIdx: ii, ...img });
+        allImages.push({ tradeIdx, imgIdx: ii, ...img });
       });
     });
 
