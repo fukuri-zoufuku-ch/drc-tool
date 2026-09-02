@@ -229,11 +229,12 @@ function saveDRC(data) {
  * 画像1枚をDriveに保存してスプレッドシートのURL列を更新
  */
 function saveImage(body) {
-  var date     = body.date     || '';
-  var tradeIdx = body.tradeIdx || 0;
-  var base64   = body.base64   || '';
-  var mimeType = body.type     || 'image/png';
-  var name     = body.name     || 'chart.png';
+  var date     = body.date  || '';
+  var tradeIdx = parseInt(body.tradeIdx) || 0;  // 必ずintに変換
+  var imgIdx   = parseInt(body.imgIdx)   || 0;
+  var base64   = body.base64 || '';
+  var mimeType = body.type   || 'image/png';
+  var name     = body.name   || 'chart.png';
 
   if (body.folderId) _runtimeFolderId = body.folderId;
 
@@ -244,34 +245,41 @@ function saveImage(body) {
   var blob   = Utilities.newBlob(
     Utilities.base64Decode(base64),
     mimeType,
-    'trade' + (tradeIdx+1) + '_' + name
+    'trade' + (tradeIdx+1) + '_img' + (imgIdx+1) + '_' + name
   );
   var file = folder.createFile(blob);
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
   var fileUrl = file.getUrl();
 
-  // スプレッドシートの該当行・画像列にURLを追記
+  // スプレッドシートの該当行を毎回新規取得（前の保存でシートが変わっている可能性があるため）
   var sheet   = getOrCreateSheet(SHEET_DRC);
-  var rows    = sheet.getDataRange().getValues();
-  var headers = rows[0];
-  var imgColNames = ['画像①','画像②','画像③','画像④','画像⑤'];
-  var colIdx  = headers.indexOf(imgColNames[tradeIdx]);
-  if (colIdx < 0) return { status: 'error', message: '画像列が見つかりません' };
+  var lastRow = sheet.getLastRow();
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
 
-  for (var i = 1; i < rows.length; i++) {
-    var rawDate = rows[i][0];
+  var imgColNames = ['画像①','画像②','画像③','画像④','画像⑤'];
+  var colIdx = headers.indexOf(imgColNames[tradeIdx]);
+  if (colIdx < 0) {
+    return { status: 'error', message: '画像列が見つかりません。列名: ' + imgColNames[tradeIdx] + ' ヘッダー: ' + headers.join(',') };
+  }
+
+  var found = false;
+  for (var i = 2; i <= lastRow; i++) {
+    var rawDate = sheet.getRange(i, 1).getValue();
     var rowDate = rawDate instanceof Date
       ? Utilities.formatDate(rawDate, 'Asia/Tokyo', 'yyyy-MM-dd')
       : String(rawDate).substring(0, 10);
     if (rowDate === date) {
-      var cell    = sheet.getRange(i+1, colIdx+1);
-      var current = cell.getValue();
+      var cell    = sheet.getRange(i, colIdx + 1);
+      var current = String(cell.getValue() || '');
       cell.setValue(current ? current + '\n' + fileUrl : fileUrl);
+      found = true;
       break;
     }
   }
 
-  return { status: 'ok', fileUrl: fileUrl };
+  if (!found) return { status: 'error', message: '日付 ' + date + ' の行が見つかりません' };
+
+  return { status: 'ok', fileUrl: fileUrl, tradeIdx: tradeIdx, imgIdx: imgIdx };
 }
 
 /**
