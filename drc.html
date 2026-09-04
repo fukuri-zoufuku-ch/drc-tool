@@ -3130,6 +3130,36 @@
     <div class="font-size-preview">← スライダーで調整すると即時反映されます</div>
   </div>
 
+  <!-- タイマー音設定 -->
+  <div style="margin-bottom:40px;">
+    <div style="font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px;">タイマー終了音</div>
+    <div style="font-size:14px;color:var(--text-sub);margin-bottom:16px;">タイマー終了時の通知音を調整します</div>
+
+    <div style="max-width:500px;margin-bottom:16px;">
+      <label style="display:block;font-size:13px;color:var(--text-sub);margin-bottom:8px;">鳴動回数</label>
+      <div style="display:flex;align-items:center;gap:16px;">
+        <span style="font-size:13px;color:var(--text-muted);">1回</span>
+        <input type="range" id="timer-beep-count-slider" min="1" max="10" value="3" step="1"
+          oninput="applyTimerBeepCount(this.value)" style="flex:1;accent-color:var(--accent);" />
+        <span style="font-size:13px;color:var(--text-muted);">10回</span>
+        <span style="font-size:16px;font-weight:600;color:var(--accent);min-width:40px;" id="timer-beep-count-val">3回</span>
+      </div>
+    </div>
+
+    <div style="max-width:500px;margin-bottom:16px;">
+      <label style="display:block;font-size:13px;color:var(--text-sub);margin-bottom:8px;">音量</label>
+      <div style="display:flex;align-items:center;gap:16px;">
+        <span style="font-size:13px;color:var(--text-muted);">小</span>
+        <input type="range" id="timer-volume-slider" min="0" max="100" value="30" step="5"
+          oninput="applyTimerVolume(this.value)" style="flex:1;accent-color:var(--accent);" />
+        <span style="font-size:13px;color:var(--text-muted);">大</span>
+        <span style="font-size:16px;font-weight:600;color:var(--accent);min-width:40px;" id="timer-volume-val">30%</span>
+      </div>
+    </div>
+
+    <button class="btn-connect" onclick="testTimerSound()" style="font-size:13px;">🔊 音をテスト再生</button>
+  </div>
+
   <!-- ティッカー設定 -->
   <div style="margin-bottom:40px;">
     <div style="font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px;">ティッカーメッセージ</div>
@@ -3778,22 +3808,8 @@ function onTimerFinished() {
     setTimeout(function() { overlay.classList.remove('show'); }, 1600);
   }
 
-  // 通知音（Web Audio API）
-  try {
-    const ctx  = new (window.AudioContext || window.webkitAudioContext)();
-    [0, 0.3, 0.6].forEach(function(t) {
-      const osc  = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.frequency.value = 880;
-      osc.type = 'sine';
-      gain.gain.setValueAtTime(0.3, ctx.currentTime + t);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.25);
-      osc.start(ctx.currentTime + t);
-      osc.stop(ctx.currentTime + t + 0.25);
-    });
-  } catch(e) {}
+  // 通知音
+  playTimerBeeps();
 
   // ブラウザ通知
   if (Notification && Notification.permission === 'granted') {
@@ -3806,6 +3822,63 @@ function requestNotificationPermission() {
   if (Notification && Notification.permission === 'default') {
     Notification.requestPermission();
   }
+}
+
+// ── タイマー音設定 ──
+function getTimerBeepCount() {
+  return parseInt(localStorage.getItem('drc_timer_beep_count') || '3');
+}
+function getTimerVolume() {
+  return parseInt(localStorage.getItem('drc_timer_volume') || '30') / 100;
+}
+
+function applyTimerBeepCount(val) {
+  localStorage.setItem('drc_timer_beep_count', val);
+  const label = document.getElementById('timer-beep-count-val');
+  if (label) label.textContent = val + '回';
+  const slider = document.getElementById('timer-beep-count-slider');
+  if (slider) slider.value = val;
+}
+
+function applyTimerVolume(val) {
+  localStorage.setItem('drc_timer_volume', val);
+  const label = document.getElementById('timer-volume-val');
+  if (label) label.textContent = val + '%';
+  const slider = document.getElementById('timer-volume-slider');
+  if (slider) slider.value = val;
+}
+
+function loadTimerSoundSettings() {
+  const count  = getTimerBeepCount();
+  const volume = Math.round(getTimerVolume() * 100);
+  applyTimerBeepCount(count);
+  applyTimerVolume(volume);
+}
+
+function playTimerBeeps() {
+  try {
+    const ctx    = new (window.AudioContext || window.webkitAudioContext)();
+    const count  = getTimerBeepCount();
+    const volume = getTimerVolume();
+    const interval = 0.3;
+    for (let n = 0; n < count; n++) {
+      const t    = n * interval;
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(volume, ctx.currentTime + t);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.25);
+      osc.start(ctx.currentTime + t);
+      osc.stop(ctx.currentTime + t + 0.25);
+    }
+  } catch(e) {}
+}
+
+function testTimerSound() {
+  playTimerBeeps();
 }
 
 // ── テーマ・フォントサイズ ──
@@ -3956,6 +4029,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // テーマ・フォントサイズを最初に適用（ちらつき防止）
   loadThemeSettings();
   loadTickerSettings();
+  loadTimerSoundSettings();
   requestNotificationPermission();
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('date').value = today;
@@ -4266,7 +4340,7 @@ function switchTab(name, el) {
   if (name === 'monthly') loadMonthlyData();
   if (name === 'yearly') loadYearlyData();
   if (name === 'tags') loadTagsTab();
-  if (name === 'settings') { renderSettingsPage(); renderLinksSettings(); renderTickerSettings(); renderGradeCriteriaUI(); updateThemeCardUI(); }
+  if (name === 'settings') { renderSettingsPage(); renderLinksSettings(); renderTickerSettings(); renderGradeCriteriaUI(); updateThemeCardUI(); loadTimerSoundSettings(); }
   if (name === 'connect') renderConnectPage();
 }
 
