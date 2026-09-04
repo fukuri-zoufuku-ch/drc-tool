@@ -4590,6 +4590,8 @@ function updateThemeCardUI() {
 
 function renderSettingsPage() {
   const master = getTagMaster();
+  // 表示前に各カテゴリのタグ重複を除去
+  master.forEach(cat => { cat.tags = [...new Set(cat.tags)]; });
   const container = document.getElementById('settings-tag-categories');
   if (!container) return;
   container.innerHTML = '';
