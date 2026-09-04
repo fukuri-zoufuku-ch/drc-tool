@@ -4979,12 +4979,17 @@ async function submitDRC() {
       });
     });
 
+    console.log('[DRC DEBUG] 送信対象の画像一覧:', allImages.map(function(i) {
+      return { tradeIdx: i.tradeIdx, imgIdx: i.imgIdx, name: i.name, hasBase64: !!i.base64, base64Len: i.base64 ? i.base64.length : 0 };
+    }));
+
     if (allImages.length > 0) {
       showStatus(`テキスト保存完了。画像を送信中 (0/${allImages.length})...`, 'loading');
       for (let k = 0; k < allImages.length; k++) {
         const img = allImages[k];
         showStatus(`画像を送信中 (${k+1}/${allImages.length})...`, 'loading');
-        await gasPost({
+        console.log('[DRC DEBUG] 画像' + (k+1) + '送信開始 tradeIdx=' + img.tradeIdx + ' imgIdx=' + img.imgIdx + ' name=' + img.name);
+        const imgResult = await gasPost({
           action: 'saveImage',
           date: data.date,
           folderId: getFolderId(),
@@ -4994,6 +4999,12 @@ async function submitDRC() {
           type:     img.type,
           name:     img.name
         });
+        console.log('[DRC DEBUG] 画像' + (k+1) + '送信結果:', imgResult);
+        if (imgResult.status !== 'ok') {
+          console.error('[DRC DEBUG] 画像' + (k+1) + 'の保存に失敗:', imgResult.message);
+          showStatus('⚠ 画像' + (k+1) + 'の保存に失敗: ' + (imgResult.message || '不明なエラー'), 'error');
+          await new Promise(r => setTimeout(r, 2000));
+        }
       }
     }
 
