@@ -219,6 +219,62 @@
   }
   .ticker-toggle:hover { border-color: var(--accent); color: var(--accent); }
 
+  /* ─── 習慣ルール管理UI ─── */
+  .habit-rule-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 8px;
+  }
+  .habit-rule-item.archived { opacity: 0.55; }
+  .habit-rule-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .habit-rule-top input[type="text"] {
+    flex: 1;
+    font-size: 14px;
+    padding: 8px 10px;
+  }
+  .habit-rule-content {
+    width: 100%;
+    font-size: 13px;
+    padding: 8px 10px;
+    min-height: 44px;
+    resize: vertical;
+    margin-bottom: 8px;
+  }
+  .habit-rule-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .btn-habit-archive {
+    padding: 6px 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-habit-archive:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-habit-restore {
+    padding: 6px 14px;
+    background: transparent;
+    border: 1px solid var(--green);
+    border-radius: var(--radius);
+    color: var(--green);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-habit-restore:hover { background: var(--green-dim); }
+
   /* ─── ティッカー設定UI ─── */
   .ticker-setting-item {
     background: var(--surface);
@@ -3128,6 +3184,19 @@
     <button class="btn-add-link" id="btn-add-link" onclick="addLink()">＋ リンクを追加</button>
   </div>
 
+  <!-- 習慣ルール管理 -->
+  <div style="margin-top:40px;margin-bottom:8px;">
+    <div style="font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px;">習慣ルールの管理</div>
+    <div style="font-size:14px;color:var(--text-sub);margin-bottom:20px;">最大10件。入力タブでチェックインし、「習慣化」タブで達成度を確認できます</div>
+    <div id="settings-habit-active-list"></div>
+    <button class="btn-add-link" id="btn-add-habit" onclick="addHabitRule()">＋ ルールを追加</button>
+
+    <div id="settings-habit-archived-wrap" style="margin-top:24px;display:none;">
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.05em;">アーカイブ済み</div>
+      <div id="settings-habit-archived-list"></div>
+    </div>
+  </div>
+
   <div style="margin-top:40px;">
     <div class="page-sub" style="font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px;">評価基準（A〜F）の編集</div>
     <div class="page-sub" style="margin-bottom:20px;">ホバー時に表示されるツールチップの内容を編集できます</div>
@@ -3475,6 +3544,110 @@ function onLinkDragEnd(e) {
   document.querySelectorAll('.link-setting-item').forEach(el => {
     el.classList.remove('dragging', 'drag-over');
   });
+}
+
+// ── 習慣ルール（HABIT_MASTER） ──
+let _habitRulesCache = [];
+let _habitSaveTimer = null;
+
+function escHtmlHabit(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function fetchHabitRules() {
+  if (!getGasUrl()) { _habitRulesCache = []; return; }
+  try {
+    const res  = await fetch(getGasUrl() + '?action=getHabitMaster');
+    const data = await res.json();
+    if (data.status === 'ok') _habitRulesCache = data.rules || [];
+  } catch(e) { console.warn('習慣ルール取得失敗:', e); }
+}
+
+async function pushHabitRules(rules) {
+  _habitRulesCache = rules;
+  renderHabitSettings();
+  if (!getGasUrl()) return;
+  try {
+    await gasPost({ action: 'saveHabitMaster', rules });
+  } catch(e) { console.warn('習慣ルール保存失敗:', e); }
+}
+
+function renderHabitSettings() {
+  const activeList   = document.getElementById('settings-habit-active-list');
+  const archivedWrap = document.getElementById('settings-habit-archived-wrap');
+  const archivedList = document.getElementById('settings-habit-archived-list');
+  const addBtn       = document.getElementById('btn-add-habit');
+  if (!activeList) return;
+
+  const active   = _habitRulesCache.filter(r => r.status !== 'archived');
+  const archived = _habitRulesCache.filter(r => r.status === 'archived');
+
+  if (addBtn) addBtn.style.display = _habitRulesCache.length >= 10 ? 'none' : 'block';
+
+  activeList.innerHTML = active.map(rule => `
+    <div class="habit-rule-item">
+      <div class="habit-rule-top">
+        <input type="text" placeholder="テーマ（例：損切りルール）" value="${escHtmlHabit(rule.theme)}"
+          onchange="updateHabitRule('${rule.id}','theme',this.value)" />
+      </div>
+      <textarea class="habit-rule-content" rows="2" placeholder="具体的に順守する内容"
+        onchange="updateHabitRule('${rule.id}','content',this.value)">${escHtmlHabit(rule.content)}</textarea>
+      <div class="habit-rule-actions">
+        <button class="btn-habit-archive" onclick="archiveHabitRule('${rule.id}')">アーカイブする</button>
+      </div>
+    </div>
+  `).join('');
+
+  if (archivedWrap) archivedWrap.style.display = archived.length ? 'block' : 'none';
+  if (archivedList) {
+    archivedList.innerHTML = archived.map(rule => `
+      <div class="habit-rule-item archived">
+        <div class="habit-rule-top">
+          <div style="flex:1;font-size:14px;color:var(--text-sub);">${escHtmlHabit(rule.theme)}</div>
+        </div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">${escHtmlHabit(rule.content)}</div>
+        <div class="habit-rule-actions">
+          <button class="btn-habit-restore" onclick="restoreHabitRule('${rule.id}')">再有効化する</button>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+function addHabitRule() {
+  if (_habitRulesCache.length >= 10) return;
+  const newRule = {
+    id: 'habit_' + Date.now(),
+    theme: '',
+    content: '',
+    status: 'active',
+    createdAt: new Date().toISOString().split('T')[0]
+  };
+  pushHabitRules([..._habitRulesCache, newRule]);
+}
+
+function updateHabitRule(id, field, value) {
+  const rule = _habitRulesCache.find(r => r.id === id);
+  if (!rule) return;
+  rule[field] = value;
+  clearTimeout(_habitSaveTimer);
+  _habitSaveTimer = setTimeout(() => {
+    if (getGasUrl()) gasPost({ action: 'saveHabitMaster', rules: _habitRulesCache });
+  }, 500);
+}
+
+function archiveHabitRule(id) {
+  const rule = _habitRulesCache.find(r => r.id === id);
+  if (!rule) return;
+  rule.status = 'archived';
+  pushHabitRules([..._habitRulesCache]);
+}
+
+function restoreHabitRule(id) {
+  const rule = _habitRulesCache.find(r => r.id === id);
+  if (!rule) return;
+  rule.status = 'active';
+  pushHabitRules([..._habitRulesCache]);
 }
 
 // ── ティッカー ──
@@ -3983,6 +4156,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   rebuildTooltips();
   await fetchLinks();
   await fetchTicker();
+  await fetchHabitRules();
 
   if (!getGasUrl()) {
     updateGasStatus('demo');
@@ -4278,7 +4452,7 @@ function switchTab(name, el) {
   if (name === 'monthly') loadMonthlyData();
   if (name === 'yearly') loadYearlyData();
   if (name === 'tags') loadTagsTab();
-  if (name === 'settings') { renderSettingsPage(); renderLinksSettings(); renderTickerSettings(); renderGradeCriteriaUI(); updateThemeCardUI(); loadTimerSoundSettings(); }
+  if (name === 'settings') { renderSettingsPage(); renderLinksSettings(); renderTickerSettings(); renderHabitSettings(); renderGradeCriteriaUI(); updateThemeCardUI(); loadTimerSoundSettings(); }
   if (name === 'connect') renderConnectPage();
 }
 
