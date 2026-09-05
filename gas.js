@@ -23,6 +23,8 @@ function doGet(e) {
     if (action === 'getImages')      return jsonResponse(getImages(e.parameter));
     if (action === 'getLinks')       return jsonResponse(getLinks());
     if (action === 'getTicker')      return jsonResponse(getTicker());
+    if (action === 'getHabitMaster') return jsonResponse(getHabitMaster());
+    if (action === 'getHabitLogs')   return jsonResponse(getHabitLogs(e.parameter));
     return jsonResponse({ status: 'error', message: 'Unknown action: ' + action });
   } catch (err) {
     return jsonResponse({ status: 'error', message: err.message });
@@ -45,8 +47,11 @@ function doPost(e) {
     if (action === 'deleteDRC')     return jsonResponse(deleteDRC(body.date));
     if (action === 'saveLinks')      return jsonResponse(saveLinks(body.links));
     if (action === 'saveTicker')     return jsonResponse(saveTicker(body.items));
+    if (action === 'saveHabitMaster') return jsonResponse(saveHabitMaster(body.rules));
+    if (action === 'saveHabitLog')    return jsonResponse(saveHabitLog(body));
     return jsonResponse({ status: 'error', message: 'Unknown action: ' + action });
   } catch (err) {
+    Logger.log('doPostエラー: ' + err.message + ' スタック: ' + err.stack);
     return jsonResponse({ status: 'error', message: err.message });
   }
 }
@@ -121,7 +126,10 @@ function getTagMaster() {
       map[id] = { id: String(id), name: String(name), tags: [] };
       order.push(String(id));
     }
-    if (tag !== '') map[id].tags.push(String(tag));
+    // 重複タグは除外
+    if (tag !== '' && !map[id].tags.includes(String(tag))) {
+      map[id].tags.push(String(tag));
+    }
   });
   const master = order.map(id => map[id]);
   return { status: 'ok', master };
@@ -141,13 +149,14 @@ function writeTagMaster(sheet, master) {
   sheet.clearContents();
   // ヘッダー
   sheet.appendRow(['category_id', 'category_name', 'tag']);
-  // データ（1行1タグ）
+  // データ（1行1タグ、重複除去）
   master.forEach(cat => {
-    if (cat.tags.length === 0) {
+    const uniqueTags = [...new Set(cat.tags)];
+    if (uniqueTags.length === 0) {
       // タグがないカテゴリも行を残す
       sheet.appendRow([cat.id, cat.name, '']);
     } else {
-      cat.tags.forEach(tag => {
+      uniqueTags.forEach(tag => {
         sheet.appendRow([cat.id, cat.name, tag]);
       });
     }
@@ -230,17 +239,21 @@ function saveDRC(data) {
  */
 function saveImage(body) {
   var date     = body.date  || '';
-  var tradeIdx = parseInt(body.tradeIdx) || 0;  // 必ずintに変換
+  var tradeIdx = parseInt(body.tradeIdx) || 0;
   var imgIdx   = parseInt(body.imgIdx)   || 0;
   var base64   = body.base64 || '';
   var mimeType = body.type   || 'image/png';
   var name     = body.name   || 'chart.png';
 
+  Logger.log('saveImage呼び出し: date=' + date + ' tradeIdx=' + tradeIdx + ' imgIdx=' + imgIdx + ' base64Len=' + base64.length);
+
   if (body.folderId) _runtimeFolderId = body.folderId;
 
-  if (!date || !base64) return { status: 'error', message: '日付または画像データがありません' };
+  if (!date || !base64) {
+    Logger.log('saveImageエラー: date=' + date + ' base64あり=' + !!base64);
+    return { status: 'error', message: '日付または画像データがありません' };
+  }
 
-  // Driveに保存
   var folder = getOrCreateDRCFolder(date);
   var blob   = Utilities.newBlob(
     Utilities.base64Decode(base64),
@@ -250,15 +263,17 @@ function saveImage(body) {
   var file = folder.createFile(blob);
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
   var fileUrl = file.getUrl();
+  Logger.log('Drive保存成功: ' + fileUrl);
 
-  // スプレッドシートの該当行を毎回新規取得（前の保存でシートが変わっている可能性があるため）
   var sheet   = getOrCreateSheet(SHEET_DRC);
   var lastRow = sheet.getLastRow();
   var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
 
   var imgColNames = ['画像①','画像②','画像③','画像④','画像⑤'];
   var colIdx = headers.indexOf(imgColNames[tradeIdx]);
+  Logger.log('画像列名=' + imgColNames[tradeIdx] + ' colIdx=' + colIdx);
   if (colIdx < 0) {
+    Logger.log('画像列見つからず。ヘッダー: ' + headers.join(','));
     return { status: 'error', message: '画像列が見つかりません。列名: ' + imgColNames[tradeIdx] + ' ヘッダー: ' + headers.join(',') };
   }
 
@@ -271,13 +286,17 @@ function saveImage(body) {
     if (rowDate === date) {
       var cell    = sheet.getRange(i, colIdx + 1);
       var current = String(cell.getValue() || '');
-      cell.setValue(current ? current + '\n' + fileUrl : fileUrl);
+      cell.setValue(current ? current + String.fromCharCode(10) + fileUrl : fileUrl);
+      Logger.log('スプシ書き込み成功: 行=' + i + ' 列=' + (colIdx+1) + ' 既存値長=' + current.length);
       found = true;
       break;
     }
   }
 
-  if (!found) return { status: 'error', message: '日付 ' + date + ' の行が見つかりません' };
+  if (!found) {
+    Logger.log('日付一致行が見つからず: 検索日付=' + date);
+    return { status: 'error', message: '日付 ' + date + ' の行が見つかりません' };
+  }
 
   return { status: 'ok', fileUrl: fileUrl, tradeIdx: tradeIdx, imgIdx: imgIdx };
 }
@@ -547,6 +566,119 @@ function saveTicker(items) {
     var enabled = typeof item === 'string' ? true : (item.enabled !== false);
     if (text.trim()) sheet.appendRow([text, enabled ? 'TRUE' : 'FALSE']);
   });
+  return { status: 'ok' };
+}
+
+// ============================================================
+//  HABIT_MASTER / HABIT_LOG シート管理
+// ============================================================
+
+const SHEET_HABIT_MASTER = 'HABIT_MASTER';
+const SHEET_HABIT_LOG    = 'HABIT_LOG';
+
+/**
+ * HABIT_MASTERシートからルール一覧を取得
+ * 列: id, theme, content, status(active/archived), created_at
+ */
+function getHabitMaster() {
+  var sheet = getOrCreateSheet(SHEET_HABIT_MASTER);
+  var rows  = sheet.getDataRange().getValues();
+  if (rows.length <= 1) return { status: 'ok', rules: [] };
+  var rules = rows.slice(1)
+    .filter(function(r) { return String(r[0]).trim() !== ''; })
+    .map(function(r) {
+      return {
+        id: String(r[0]), theme: String(r[1]), content: String(r[2]),
+        status: String(r[3] || 'active'), createdAt: String(r[4] || '')
+      };
+    });
+  return { status: 'ok', rules: rules };
+}
+
+/**
+ * HABIT_MASTERシートを上書き保存
+ */
+function saveHabitMaster(rules) {
+  var sheet = getOrCreateSheet(SHEET_HABIT_MASTER);
+  sheet.clearContents();
+  sheet.appendRow(['id','theme','content','status','created_at']);
+  var headerRange = sheet.getRange(1,1,1,5);
+  headerRange.setBackground('#1a1a2e').setFontColor('#c8a96e').setFontWeight('bold');
+  (rules || []).forEach(function(rule) {
+    sheet.appendRow([rule.id, rule.theme || '', rule.content || '', rule.status || 'active', rule.createdAt || '']);
+  });
+  return { status: 'ok' };
+}
+
+/**
+ * 指定日付範囲のHABIT_LOGを取得
+ * パラメータ: dateFrom, dateTo（省略可）, ruleId（省略可）
+ * 列: date, rule_id, result(compliant/violated)
+ */
+function getHabitLogs(params) {
+  var sheet = getOrCreateSheet(SHEET_HABIT_LOG);
+  var rows  = sheet.getDataRange().getValues();
+  if (rows.length <= 1) return { status: 'ok', logs: [] };
+
+  var dateFrom = params.dateFrom || '';
+  var dateTo   = params.dateTo   || '';
+  var ruleId   = params.ruleId   || '';
+
+  var logs = rows.slice(1)
+    .filter(function(r) { return String(r[0]).trim() !== ''; })
+    .map(function(r) {
+      var rawDate = r[0];
+      var dateStr = rawDate instanceof Date
+        ? Utilities.formatDate(rawDate, 'Asia/Tokyo', 'yyyy-MM-dd')
+        : String(rawDate).substring(0, 10);
+      return { date: dateStr, ruleId: String(r[1]), result: String(r[2]) };
+    })
+    .filter(function(log) {
+      if (dateFrom && log.date < dateFrom) return false;
+      if (dateTo   && log.date > dateTo)   return false;
+      if (ruleId   && log.ruleId !== ruleId) return false;
+      return true;
+    });
+
+  return { status: 'ok', logs: logs };
+}
+
+/**
+ * 1件のHABIT_LOGを保存（同日・同ルールは上書き）
+ * body: { date, ruleId, result }
+ */
+function saveHabitLog(body) {
+  var date   = body.date   || '';
+  var ruleId = body.ruleId || '';
+  var result = body.result || '';
+  if (!date || !ruleId || !result) {
+    return { status: 'error', message: '日付・ルールID・結果が必要です' };
+  }
+
+  var sheet = getOrCreateSheet(SHEET_HABIT_LOG);
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(['date','rule_id','result']);
+    var headerRange = sheet.getRange(1,1,1,3);
+    headerRange.setBackground('#1a1a2e').setFontColor('#c8a96e').setFontWeight('bold');
+  }
+
+  var rows = sheet.getDataRange().getValues();
+  var found = false;
+  for (var i = 1; i < rows.length; i++) {
+    var rawDate = rows[i][0];
+    var rowDate = rawDate instanceof Date
+      ? Utilities.formatDate(rawDate, 'Asia/Tokyo', 'yyyy-MM-dd')
+      : String(rawDate).substring(0, 10);
+    if (rowDate === date && String(rows[i][1]) === ruleId) {
+      sheet.getRange(i+1, 3).setValue(result);
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    sheet.appendRow([date, ruleId, result]);
+  }
+
   return { status: 'ok' };
 }
 
