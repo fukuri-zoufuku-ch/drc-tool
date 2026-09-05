@@ -3755,15 +3755,22 @@ function renderHabitCheckin() {
   });
 }
 
-function setHabitCheckin(ruleId, result) {
+async function setHabitCheckin(ruleId, result) {
   _habitCheckinState[ruleId] = result;
   updateHabitCheckinUI(ruleId, result);
-  // 即時保存
+  // 違反時はストリーク表示を隠す
+  if (result !== 'compliant') {
+    const el = document.getElementById('habit-streak-' + ruleId);
+    if (el) el.classList.remove('show');
+  }
+  // 即時保存（完了を待ってからストリーク再計算）
   const dateVal = document.getElementById('date').value;
   if (dateVal && getGasUrl()) {
-    gasPost({ action: 'saveHabitLog', date: dateVal, ruleId, result });
+    await gasPost({ action: 'saveHabitLog', date: dateVal, ruleId, result });
   }
-  showHabitStreak(ruleId);
+  if (result === 'compliant') {
+    showHabitStreak(ruleId);
+  }
 }
 
 function updateHabitCheckinUI(ruleId, result) {
@@ -3812,7 +3819,9 @@ async function loadHabitCheckinForDate(date) {
         _habitCheckinState[log.ruleId] = log.result;
       });
       renderHabitCheckin();
-      Object.keys(_habitCheckinState).forEach(showHabitStreak);
+      Object.keys(_habitCheckinState).forEach(ruleId => {
+        if (_habitCheckinState[ruleId] === 'compliant') showHabitStreak(ruleId);
+      });
     }
   } catch(e) {}
 }
