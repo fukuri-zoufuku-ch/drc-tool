@@ -275,6 +275,68 @@
   }
   .btn-habit-restore:hover { background: var(--green-dim); }
 
+  /* ─── 習慣チェックイン（入力タブ） ─── */
+  .habit-checkin-item {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin-bottom: 10px;
+  }
+  .habit-checkin-theme {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .habit-checkin-content {
+    font-size: 13px;
+    color: var(--text-sub);
+    margin-bottom: 14px;
+    line-height: 1.6;
+  }
+  .habit-checkin-btns {
+    display: flex;
+    gap: 8px;
+  }
+  .habit-checkin-btn {
+    flex: 1;
+    padding: 10px;
+    border-radius: var(--radius);
+    border: 2px solid var(--border);
+    background: var(--surface-3);
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .habit-checkin-btn:hover { border-color: var(--border-strong); color: var(--text); }
+  .habit-checkin-btn.compliant.selected {
+    background: rgba(76,175,125,0.2);
+    border-color: var(--green);
+    color: var(--green);
+  }
+  .habit-checkin-btn.violated.selected {
+    background: var(--red-dim);
+    border-color: var(--red);
+    color: var(--red);
+  }
+  .habit-checkin-streak {
+    font-size: 12px;
+    color: var(--accent);
+    margin-top: 8px;
+    display: none;
+  }
+  .habit-checkin-streak.show { display: block; }
+  .habit-checkin-empty {
+    font-size: 13px;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 20px 0;
+  }
+
   /* ─── ティッカー設定UI ─── */
   .ticker-setting-item {
     background: var(--surface);
@@ -2707,6 +2769,18 @@
     </div>
   </div>
 
+  <!-- 8.5 習慣チェックイン -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">✅</div>
+      <div>
+        <div class="section-title">今日のルール遵守チェック</div>
+        <div class="section-sub">設定タブで登録したルールを守れたか記録します</div>
+      </div>
+    </div>
+    <div id="habit-checkin-list"></div>
+  </div>
+
   <!-- 9. マントラ -->
   <div class="section">
     <div class="section-header">
@@ -3650,6 +3724,99 @@ function restoreHabitRule(id) {
   pushHabitRules([..._habitRulesCache]);
 }
 
+// ── 習慣チェックイン（入力タブ） ──
+let _habitCheckinState = {}; // { ruleId: 'compliant' | 'violated' }
+
+function renderHabitCheckin() {
+  const container = document.getElementById('habit-checkin-list');
+  if (!container) return;
+  const active = _habitRulesCache.filter(r => r.status !== 'archived');
+
+  if (!active.length) {
+    container.innerHTML = '<div class="habit-checkin-empty">設定タブから習慣ルールを登録すると、ここでチェックインできます。</div>';
+    return;
+  }
+
+  container.innerHTML = active.map(rule => `
+    <div class="habit-checkin-item" data-rule-id="${rule.id}">
+      <div class="habit-checkin-theme">${escHtmlHabit(rule.theme) || '(無題のルール)'}</div>
+      ${rule.content ? `<div class="habit-checkin-content">${escHtmlHabit(rule.content)}</div>` : ''}
+      <div class="habit-checkin-btns">
+        <button class="habit-checkin-btn compliant" onclick="setHabitCheckin('${rule.id}','compliant')">守れた ◎</button>
+        <button class="habit-checkin-btn violated" onclick="setHabitCheckin('${rule.id}','violated')">違反した ×</button>
+      </div>
+      <div class="habit-checkin-streak" id="habit-streak-${rule.id}"></div>
+    </div>
+  `).join('');
+
+  // 既存の状態を反映
+  Object.keys(_habitCheckinState).forEach(ruleId => {
+    updateHabitCheckinUI(ruleId, _habitCheckinState[ruleId]);
+  });
+}
+
+function setHabitCheckin(ruleId, result) {
+  _habitCheckinState[ruleId] = result;
+  updateHabitCheckinUI(ruleId, result);
+  // 即時保存
+  const dateVal = document.getElementById('date').value;
+  if (dateVal && getGasUrl()) {
+    gasPost({ action: 'saveHabitLog', date: dateVal, ruleId, result });
+  }
+  showHabitStreak(ruleId);
+}
+
+function updateHabitCheckinUI(ruleId, result) {
+  const item = document.querySelector('.habit-checkin-item[data-rule-id="' + ruleId + '"]');
+  if (!item) return;
+  item.querySelectorAll('.habit-checkin-btn').forEach(btn => btn.classList.remove('selected'));
+  const targetClass = result === 'compliant' ? 'compliant' : 'violated';
+  const btn = item.querySelector('.habit-checkin-btn.' + targetClass);
+  if (btn) btn.classList.add('selected');
+}
+
+async function showHabitStreak(ruleId) {
+  if (!getGasUrl()) return;
+  const dateVal = document.getElementById('date').value;
+  if (!dateVal) return;
+  try {
+    const res  = await fetch(getGasUrl() + '?action=getHabitLogs&ruleId=' + encodeURIComponent(ruleId) + '&dateTo=' + dateVal);
+    const data = await res.json();
+    if (data.status !== 'ok') return;
+    const logs = (data.logs || []).sort((a,b) => b.date.localeCompare(a.date));
+    let streak = 0;
+    for (const log of logs) {
+      if (log.result === 'compliant') streak++;
+      else break;
+    }
+    const el = document.getElementById('habit-streak-' + ruleId);
+    if (el && streak > 0) {
+      el.textContent = '🔥 ' + streak + '日連続達成中！';
+      el.classList.add('show');
+    } else if (el) {
+      el.classList.remove('show');
+    }
+  } catch(e) {}
+}
+
+// 日付読み込み時に習慣チェックイン状態も復元
+async function loadHabitCheckinForDate(date) {
+  _habitCheckinState = {};
+  renderHabitCheckin();
+  if (!getGasUrl() || !date) return;
+  try {
+    const res  = await fetch(getGasUrl() + '?action=getHabitLogs&dateFrom=' + date + '&dateTo=' + date);
+    const data = await res.json();
+    if (data.status === 'ok') {
+      (data.logs || []).forEach(log => {
+        _habitCheckinState[log.ruleId] = log.result;
+      });
+      renderHabitCheckin();
+      Object.keys(_habitCheckinState).forEach(showHabitStreak);
+    }
+  } catch(e) {}
+}
+
 // ── ティッカー ──
 let _tickerCache = [];
 let _tickerVisible = true;
@@ -4157,6 +4324,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await fetchLinks();
   await fetchTicker();
   await fetchHabitRules();
+  renderHabitCheckin();
 
   if (!getGasUrl()) {
     updateGasStatus('demo');
@@ -4244,6 +4412,7 @@ async function deleteDRC() {
 // ── 日付別データ読み込み ──
 async function loadDRCByDate(date) {
   if (!getGasUrl() || !date) return;
+  loadHabitCheckinForDate(date);
   showStatus('データを確認中...', 'loading');
   try {
     const res  = await fetch(getGasUrl() + '?action=getDRC&dateFrom=' + date + '&dateTo=' + date);
