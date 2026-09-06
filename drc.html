@@ -1488,6 +1488,106 @@
     padding: 60px 0;
   }
 
+  /* ─── 習慣化タブ ─── */
+  .habits-wrap {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 36px 32px 100px;
+  }
+  .habit-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px 28px;
+    margin-bottom: 20px;
+  }
+  .habit-card.archived { opacity: 0.6; }
+  .habit-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .habit-card-theme {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .habit-card-badge {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    background: var(--surface-3);
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+  .habit-card-content {
+    font-size: 13px;
+    color: var(--text-sub);
+    margin-bottom: 18px;
+    line-height: 1.6;
+  }
+  .habit-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .habit-summary-item {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    text-align: center;
+  }
+  .habit-summary-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+  .habit-summary-val { font-size: 22px; font-weight: 700; color: var(--text); }
+  .habit-summary-val.streak { color: var(--accent); }
+  .habit-summary-val.rate-high { color: var(--green); }
+  .habit-summary-val.rate-mid  { color: var(--accent); }
+  .habit-summary-val.rate-low  { color: var(--red); }
+  .habit-heatmap-title {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 10px;
+  }
+  .habit-heatmap {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 14px);
+    gap: 3px;
+  }
+  .habit-heat-cell {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    background: var(--surface-3);
+    cursor: default;
+  }
+  .habit-heat-cell.compliant { background: var(--green); }
+  .habit-heat-cell.violated  { background: var(--red); }
+  .habit-heat-cell.empty     { background: var(--surface-2); opacity: 0.4; }
+  .habits-empty {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+    padding: 60px 0;
+  }
+  .habits-section-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 32px 0 12px;
+  }
+
   /* ─── タグ別タブ ─── */
   .tags-wrap {
     max-width: 960px;
@@ -2383,6 +2483,7 @@
   <button class="tab" onclick="switchTab('monthly',this)">月次</button>
   <button class="tab" onclick="switchTab('yearly',this)">年間</button>
   <button class="tab" onclick="switchTab('tags',this)">タグ別</button>
+  <button class="tab" onclick="switchTab('habits',this)">習慣化</button>
   <button class="tab" onclick="switchTab('links',this)">リンク集</button>
   <button class="tab" onclick="switchTab('settings',this)">設定</button>
   <button class="tab" onclick="switchTab('connect',this)">連携設定</button>
@@ -3061,6 +3162,20 @@
     </table>
   </div>
 
+</div>
+</div>
+
+<!-- ── 習慣化タブ ── -->
+<div id="page-habits" class="page">
+<div class="habits-wrap">
+  <div class="page-title">習慣化</div>
+  <div class="page-sub" style="margin-bottom:24px;">ルールごとの達成度を確認します</div>
+  <div id="habits-active-cards"></div>
+  <div id="habits-archived-section" style="display:none;">
+    <div class="habits-section-label">アーカイブ済みルール</div>
+    <div id="habits-archived-cards"></div>
+  </div>
+  <div id="habits-empty-msg" class="habits-empty" style="display:none;">設定タブから習慣ルールを登録すると、ここに達成度が表示されます。</div>
 </div>
 </div>
 
@@ -4630,6 +4745,7 @@ function switchTab(name, el) {
   if (name === 'monthly') loadMonthlyData();
   if (name === 'yearly') loadYearlyData();
   if (name === 'tags') loadTagsTab();
+  if (name === 'habits') loadHabitsTab();
   if (name === 'settings') { renderSettingsPage(); renderLinksSettings(); renderTickerSettings(); renderHabitSettings(); renderGradeCriteriaUI(); updateThemeCardUI(); loadTimerSoundSettings(); }
   if (name === 'connect') renderConnectPage();
 }
@@ -5683,6 +5799,109 @@ function renderMonthly() {
         <div class="monthly-day-tickers">${tickers||'銘柄なし'}</div>
       </div>`;
   }).join('');
+}
+
+// ── 習慣化タブ ──
+async function loadHabitsTab() {
+  await fetchHabitRules();
+  const rules = _habitRulesCache;
+
+  const activeContainer   = document.getElementById('habits-active-cards');
+  const archivedSection   = document.getElementById('habits-archived-section');
+  const archivedContainer = document.getElementById('habits-archived-cards');
+  const emptyMsg          = document.getElementById('habits-empty-msg');
+
+  if (!rules.length) {
+    activeContainer.innerHTML = '';
+    archivedSection.style.display = 'none';
+    emptyMsg.style.display = 'block';
+    return;
+  }
+  emptyMsg.style.display = 'none';
+
+  const active   = rules.filter(r => r.status !== 'archived');
+  const archived = rules.filter(r => r.status === 'archived');
+
+  // 全ルール分のログを一括取得
+  const allLogs = {};
+  for (const rule of rules) {
+    allLogs[rule.id] = await fetchAllHabitLogs(rule.id);
+  }
+
+  activeContainer.innerHTML = active.map(rule => renderHabitCard(rule, allLogs[rule.id], false)).join('');
+
+  if (archived.length) {
+    archivedSection.style.display = 'block';
+    archivedContainer.innerHTML = archived.map(rule => renderHabitCard(rule, allLogs[rule.id], true)).join('');
+  } else {
+    archivedSection.style.display = 'none';
+  }
+}
+
+async function fetchAllHabitLogs(ruleId) {
+  if (!getGasUrl()) return [];
+  try {
+    const res  = await fetch(getGasUrl() + '?action=getHabitLogs&ruleId=' + encodeURIComponent(ruleId));
+    const data = await res.json();
+    return data.status === 'ok' ? (data.logs || []) : [];
+  } catch(e) { return []; }
+}
+
+function renderHabitCard(rule, logs, isArchived) {
+  const sorted = [...logs].sort((a,b) => b.date.localeCompare(a.date));
+
+  // 現在のストリーク（最新日から遡って連続compliant）
+  let streak = 0;
+  for (const log of sorted) {
+    if (log.result === 'compliant') streak++;
+    else break;
+  }
+
+  // 遵守率
+  const total     = logs.length;
+  const compliant = logs.filter(l => l.result === 'compliant').length;
+  const rate      = total ? Math.round(compliant / total * 100) : 0;
+  const rateClass = rate >= 80 ? 'rate-high' : rate >= 50 ? 'rate-mid' : 'rate-low';
+
+  // ヒートマップ（過去90日分）
+  const logMap = {};
+  logs.forEach(l => { logMap[l.date] = l.result; });
+  const today = new Date();
+  const cells = [];
+  for (let i = 89; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split('T')[0];
+    const result = logMap[dateStr];
+    const cls = result === 'compliant' ? 'compliant' : result === 'violated' ? 'violated' : 'empty';
+    cells.push('<div class="habit-heat-cell ' + cls + '" title="' + dateStr + (result ? ' : ' + (result==='compliant'?'守れた':'違反') : '') + '"></div>');
+  }
+
+  return `
+    <div class="habit-card ${isArchived ? 'archived' : ''}">
+      <div class="habit-card-header">
+        <div class="habit-card-theme">${escHtmlHabit(rule.theme) || '(無題のルール)'}</div>
+        ${isArchived ? '<div class="habit-card-badge">アーカイブ済み</div>' : ''}
+      </div>
+      ${rule.content ? `<div class="habit-card-content">${escHtmlHabit(rule.content)}</div>` : ''}
+      <div class="habit-summary-grid">
+        <div class="habit-summary-item">
+          <div class="habit-summary-label">現在のストリーク</div>
+          <div class="habit-summary-val streak">${streak}日</div>
+        </div>
+        <div class="habit-summary-item">
+          <div class="habit-summary-label">遵守率</div>
+          <div class="habit-summary-val ${rateClass}">${rate}%</div>
+        </div>
+        <div class="habit-summary-item">
+          <div class="habit-summary-label">総記録数</div>
+          <div class="habit-summary-val">${total}日</div>
+        </div>
+      </div>
+      <div class="habit-heatmap-title">過去90日</div>
+      <div class="habit-heatmap">${cells.join('')}</div>
+    </div>
+  `;
 }
 
 // ── タグ別タブ ──
