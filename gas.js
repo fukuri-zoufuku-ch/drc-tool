@@ -376,6 +376,7 @@ function buildDRCRow(data, imageUrls) {
     data.fomo_note     || '',
     // プロセス目標
     data.goal          || '',
+    data.big_picture   || '',
     // 前場
     data.am_grade      || '',
     data.am_setup      || '',
@@ -423,7 +424,7 @@ function ensureDRCHeader(sheet) {
     // FOMO
     'FOMO_心配不安','FOMO_SNS','FOMO_手放した銘柄','FOMO_衝動','FOMO_深呼吸','FOMO自由記述',
     // 目標
-    'プロセス目標',
+    'プロセス目標','大局観',
     // 前場
     '前場評価','前場セットアップ','前場PB裁量','前場サイズ','前場コメント',
     // 後場

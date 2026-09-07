@@ -2670,6 +2670,10 @@
     <div class="field">
       <textarea id="goal" rows="3" placeholder="例：A+セットアップのみを取る　／　最大3トレードまで　／　損切りラインを事前に決める"></textarea>
     </div>
+    <div class="field" style="margin-top:16px;margin-bottom:0;">
+      <label>大局観（Big Picture）</label>
+      <textarea id="big-picture" rows="3" placeholder="現在の相場の大きな流れ・トレンド認識など..."></textarea>
+    </div>
   </div>
 
   <!-- 5. 時間帯別評価 -->
@@ -4590,6 +4594,7 @@ function fillForm(r) {
 
   // プロセス目標
   document.getElementById('goal').value = v('プロセス目標');
+  document.getElementById('big-picture').value = v('大局観');
 
   // 前場
   if (v('前場評価')) selectGrade('am', v('前場評価'));
@@ -4688,6 +4693,7 @@ function clearForm(date) {
   document.getElementById('condition-note').value = '';
   document.getElementById('fomo-note').value    = '';
   document.getElementById('goal').value         = '';
+  document.getElementById('big-picture').value  = '';
   document.getElementById('am-setup').value     = '';
   document.getElementById('am-playbook').value  = '';
   document.getElementById('am-size').value      = '';
@@ -5386,6 +5392,7 @@ function collectFormData() {
     fomo_note: document.getElementById('fomo-note').value.trim(),
     condition_note: document.getElementById('condition-note').value.trim(),
     goal: document.getElementById('goal').value.trim(),
+    big_picture: document.getElementById('big-picture').value.trim(),
     am_grade: state.grades.am,
     am_setup: document.getElementById('am-setup').value,
     am_playbook: document.getElementById('am-playbook').value,
