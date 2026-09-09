@@ -4016,17 +4016,19 @@ function renderProcessScoring() {
   }
 
   container.innerHTML = enabled.map(item => {
-    const score = _processScoreState[item.id] !== undefined ? _processScoreState[item.id] : 5;
+    // 未評価はスライダー値0（表示は「未評価」）、評価済みは1〜10
+    const hasScore = _processScoreState[item.id] !== undefined;
+    const score = hasScore ? _processScoreState[item.id] : 0;
     return `
       <div class="process-score-item" data-item-id="${item.id}">
         <div class="process-score-label">${escHtmlHabit(item.label) || '(無題の項目)'}</div>
         <div class="slider-wrap">
           <span style="font-size:13px;color:var(--text-muted);">1</span>
-          <input type="range" min="1" max="10" value="${score}" class="process-score-slider"
+          <input type="range" min="0" max="10" value="${score}" class="process-score-slider"
             oninput="onProcessScoreInput('${item.id}', this.value)"
             onchange="onProcessScoreChange('${item.id}', this.value)" />
           <span style="font-size:13px;color:var(--text-muted);">10</span>
-          <span class="slider-val" id="process-score-val-${item.id}">${score}</span>
+          <span class="slider-val" id="process-score-val-${item.id}" style="${hasScore ? '' : 'color:var(--text-muted);font-size:13px;'}">${hasScore ? score : '未評価'}</span>
         </div>
       </div>
     `;
@@ -4035,14 +4037,30 @@ function renderProcessScoring() {
 
 function onProcessScoreInput(itemId, value) {
   const el = document.getElementById('process-score-val-' + itemId);
-  if (el) el.textContent = value;
+  if (!el) return;
+  const num = parseInt(value);
+  if (num === 0) {
+    el.textContent = '未評価';
+    el.style.color = 'var(--text-muted)';
+    el.style.fontSize = '13px';
+  } else {
+    el.textContent = num;
+    el.style.color = '';
+    el.style.fontSize = '';
+  }
 }
 
 function onProcessScoreChange(itemId, value) {
-  _processScoreState[itemId] = parseInt(value);
+  const num = parseInt(value);
+  if (num === 0) {
+    // 0（未評価）に戻した場合は記録しない
+    delete _processScoreState[itemId];
+    return;
+  }
+  _processScoreState[itemId] = num;
   const dateVal = document.getElementById('date').value;
   if (dateVal && getGasUrl()) {
-    gasPost({ action: 'saveProcessScore', date: dateVal, itemId, score: parseInt(value) });
+    gasPost({ action: 'saveProcessScore', date: dateVal, itemId, score: num });
   }
 }
 
