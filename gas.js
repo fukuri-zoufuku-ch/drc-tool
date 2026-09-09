@@ -25,6 +25,8 @@ function doGet(e) {
     if (action === 'getTicker')      return jsonResponse(getTicker());
     if (action === 'getHabitMaster') return jsonResponse(getHabitMaster());
     if (action === 'getHabitLogs')   return jsonResponse(getHabitLogs(e.parameter));
+    if (action === 'getProcessItems')  return jsonResponse(getProcessItems());
+    if (action === 'getProcessScores') return jsonResponse(getProcessScores(e.parameter));
     return jsonResponse({ status: 'error', message: 'Unknown action: ' + action });
   } catch (err) {
     return jsonResponse({ status: 'error', message: err.message });
@@ -49,6 +51,8 @@ function doPost(e) {
     if (action === 'saveTicker')     return jsonResponse(saveTicker(body.items));
     if (action === 'saveHabitMaster') return jsonResponse(saveHabitMaster(body.rules));
     if (action === 'saveHabitLog')    return jsonResponse(saveHabitLog(body));
+    if (action === 'saveProcessItems') return jsonResponse(saveProcessItems(body.items));
+    if (action === 'saveProcessScore') return jsonResponse(saveProcessScore(body));
     return jsonResponse({ status: 'error', message: 'Unknown action: ' + action });
   } catch (err) {
     Logger.log('doPostエラー: ' + err.message + ' スタック: ' + err.stack);
@@ -679,6 +683,131 @@ function saveHabitLog(body) {
   if (!found) {
     sheet.appendRow([date, ruleId, result]);
   }
+
+  return { status: 'ok' };
+}
+
+// ============================================================
+//  PROCESS_ITEMS / PROCESS_LOG シート管理
+// ============================================================
+
+const SHEET_PROCESS_ITEMS = 'PROCESS_ITEMS';
+const SHEET_PROCESS_LOG   = 'PROCESS_LOG';
+
+var DEFAULT_PROCESS_ITEMS = [
+  '自分のルールを守れたか','セットアップの質','エントリーの質','エグジットの質',
+  'リスク管理の遵守','感情管理','サイズ管理','ギブバックの有無','判断の一貫性'
+];
+
+/**
+ * PROCESS_ITEMSシートから項目一覧を取得。空ならデフォルトを書き込む
+ * 列: id, label, enabled, order
+ */
+function getProcessItems() {
+  var sheet = getOrCreateSheet(SHEET_PROCESS_ITEMS);
+  var rows  = sheet.getDataRange().getValues();
+
+  if (rows.length <= 1) {
+    var defaults = DEFAULT_PROCESS_ITEMS.map(function(label, i) {
+      return { id: 'proc_' + i, label: label, enabled: true, order: i };
+    });
+    writeProcessItems(sheet, defaults);
+    return { status: 'ok', items: defaults };
+  }
+
+  var items = rows.slice(1)
+    .filter(function(r) { return String(r[0]).trim() !== ''; })
+    .map(function(r) {
+      return {
+        id: String(r[0]), label: String(r[1]),
+        enabled: String(r[2]).toUpperCase() !== 'FALSE',
+        order: Number(r[3]) || 0
+      };
+    });
+  items.sort(function(a,b){ return a.order - b.order; });
+  return { status: 'ok', items: items };
+}
+
+function saveProcessItems(items) {
+  var sheet = getOrCreateSheet(SHEET_PROCESS_ITEMS);
+  writeProcessItems(sheet, items || []);
+  return { status: 'ok' };
+}
+
+function writeProcessItems(sheet, items) {
+  sheet.clearContents();
+  sheet.appendRow(['id','label','enabled','order']);
+  var headerRange = sheet.getRange(1,1,1,4);
+  headerRange.setBackground('#1a1a2e').setFontColor('#c8a96e').setFontWeight('bold');
+  items.forEach(function(item, i) {
+    sheet.appendRow([item.id, item.label || '', item.enabled ? 'TRUE' : 'FALSE', i]);
+  });
+}
+
+/**
+ * 指定日付範囲のPROCESS_LOGを取得
+ * パラメータ: dateFrom, dateTo（省略可）, itemId（省略可）
+ */
+function getProcessScores(params) {
+  var sheet = getOrCreateSheet(SHEET_PROCESS_LOG);
+  var rows  = sheet.getDataRange().getValues();
+  if (rows.length <= 1) return { status: 'ok', scores: [] };
+
+  var dateFrom = params.dateFrom || '';
+  var dateTo   = params.dateTo   || '';
+  var itemId   = params.itemId   || '';
+
+  var scores = rows.slice(1)
+    .filter(function(r) { return String(r[0]).trim() !== ''; })
+    .map(function(r) {
+      var rawDate = r[0];
+      var dateStr = rawDate instanceof Date
+        ? Utilities.formatDate(rawDate, 'Asia/Tokyo', 'yyyy-MM-dd')
+        : String(rawDate).substring(0, 10);
+      return { date: dateStr, itemId: String(r[1]), score: Number(r[2]) };
+    })
+    .filter(function(s) {
+      if (dateFrom && s.date < dateFrom) return false;
+      if (dateTo   && s.date > dateTo)   return false;
+      if (itemId   && s.itemId !== itemId) return false;
+      return true;
+    });
+
+  return { status: 'ok', scores: scores };
+}
+
+/**
+ * 1件のPROCESS_LOGを保存（同日・同項目は上書き）
+ */
+function saveProcessScore(body) {
+  var date   = body.date   || '';
+  var itemId = body.itemId || '';
+  var score  = body.score;
+  if (!date || !itemId || score === undefined) {
+    return { status: 'error', message: '日付・項目ID・スコアが必要です' };
+  }
+
+  var sheet = getOrCreateSheet(SHEET_PROCESS_LOG);
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(['date','item_id','score']);
+    var headerRange = sheet.getRange(1,1,1,3);
+    headerRange.setBackground('#1a1a2e').setFontColor('#c8a96e').setFontWeight('bold');
+  }
+
+  var rows = sheet.getDataRange().getValues();
+  var found = false;
+  for (var i = 1; i < rows.length; i++) {
+    var rawDate = rows[i][0];
+    var rowDate = rawDate instanceof Date
+      ? Utilities.formatDate(rawDate, 'Asia/Tokyo', 'yyyy-MM-dd')
+      : String(rawDate).substring(0, 10);
+    if (rowDate === date && String(rows[i][1]) === itemId) {
+      sheet.getRange(i+1, 3).setValue(score);
+      found = true;
+      break;
+    }
+  }
+  if (!found) sheet.appendRow([date, itemId, score]);
 
   return { status: 'ok' };
 }

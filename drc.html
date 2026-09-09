@@ -275,6 +275,49 @@
   }
   .btn-habit-restore:hover { background: var(--green-dim); }
 
+  /* ─── プロセス採点項目管理UI ─── */
+  .process-item-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: grab;
+    transition: all 0.15s;
+  }
+  .process-item-row:active { cursor: grabbing; }
+  .process-item-row.dragging { opacity: 0.4; border-color: var(--accent); }
+  .process-item-row.drag-over { border-color: var(--accent); background: var(--accent-dim); }
+  .process-item-row.disabled { opacity: 0.5; }
+  .process-item-row input[type="text"] {
+    flex: 1;
+    font-size: 14px;
+    padding: 8px 10px;
+  }
+
+  /* ─── プロセス採点（入力タブ） ─── */
+  .process-score-item {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    margin-bottom: 10px;
+  }
+  .process-score-label {
+    font-size: 14px;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+  .process-score-empty {
+    font-size: 13px;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 20px 0;
+  }
+
   /* ─── 習慣チェックイン（入力タブ） ─── */
   .habit-checkin-item {
     background: var(--surface-2);
@@ -2884,6 +2927,18 @@
     </div>
   </div>
 
+  <!-- 8.4 プロセス採点 -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">📊</div>
+      <div>
+        <div class="section-title">プロセス採点</div>
+        <div class="section-sub">今日のトレードプロセスを10段階で評価する</div>
+      </div>
+    </div>
+    <div id="process-score-list"></div>
+  </div>
+
   <!-- 8.5 習慣チェックイン -->
   <div class="section">
     <div class="section-header">
@@ -3400,6 +3455,14 @@
     </div>
   </div>
 
+  <!-- プロセス採点項目管理 -->
+  <div style="margin-top:40px;margin-bottom:8px;">
+    <div style="font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px;">プロセス採点項目の管理</div>
+    <div style="font-size:14px;color:var(--text-sub);margin-bottom:20px;">入力タブに表示する採点項目です。ドラッグで並び替え、スイッチで採点対象のON/OFFができます</div>
+    <div id="settings-process-items-list"></div>
+    <button class="btn-add-link" onclick="addProcessItem()">＋ 項目を追加</button>
+  </div>
+
   <div style="margin-top:40px;">
     <div class="page-sub" style="font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px;">評価基準（A〜F）の編集</div>
     <div class="page-sub" style="margin-bottom:20px;">ホバー時に表示されるツールチップの内容を編集できます</div>
@@ -3851,6 +3914,150 @@ function restoreHabitRule(id) {
   if (!rule) return;
   rule.status = 'active';
   pushHabitRules([..._habitRulesCache]);
+}
+
+// ── プロセス採点項目（PROCESS_ITEMS） ──
+let _processItemsCache = [];
+let _processDragIdx = null;
+
+async function fetchProcessItems() {
+  if (!getGasUrl()) { _processItemsCache = []; return; }
+  try {
+    const res  = await fetch(getGasUrl() + '?action=getProcessItems');
+    const data = await res.json();
+    if (data.status === 'ok') _processItemsCache = data.items || [];
+  } catch(e) { console.warn('プロセス項目取得失敗:', e); }
+}
+
+async function pushProcessItems(items) {
+  _processItemsCache = items;
+  renderProcessItemsSettings();
+  renderProcessScoring();
+  if (!getGasUrl()) return;
+  try {
+    await gasPost({ action: 'saveProcessItems', items });
+  } catch(e) { console.warn('プロセス項目保存失敗:', e); }
+}
+
+function renderProcessItemsSettings() {
+  const list = document.getElementById('settings-process-items-list');
+  if (!list) return;
+  list.innerHTML = _processItemsCache.map((item, i) => `
+    <div class="process-item-row ${item.enabled ? '' : 'disabled'}" draggable="true"
+      ondragstart="onProcessDragStart(event,${i})"
+      ondragover="onProcessDragOver(event,${i})"
+      ondrop="onProcessDrop(event,${i})"
+      ondragleave="this.classList.remove('drag-over')"
+      ondragend="this.classList.remove('dragging','drag-over')">
+      <span class="tag-drag-handle">⠿</span>
+      <input type="text" value="${escHtmlHabit(item.label)}" onchange="updateProcessItemLabel('${item.id}', this.value)" />
+      <button class="ticker-toggle-btn ${item.enabled ? 'on' : 'off'}" onclick="toggleProcessItem('${item.id}')" title="${item.enabled ? '採点対象' : '対象外'}"></button>
+      <button class="btn-link-del" onclick="deleteProcessItem('${item.id}')" title="削除">×</button>
+    </div>
+  `).join('');
+}
+
+function addProcessItem() {
+  const newItem = { id: 'proc_' + Date.now(), label: '', enabled: true, order: _processItemsCache.length };
+  pushProcessItems([..._processItemsCache, newItem]);
+}
+
+function updateProcessItemLabel(id, value) {
+  const item = _processItemsCache.find(i => i.id === id);
+  if (!item) return;
+  item.label = value;
+  pushProcessItems([..._processItemsCache]);
+}
+
+function toggleProcessItem(id) {
+  const item = _processItemsCache.find(i => i.id === id);
+  if (!item) return;
+  item.enabled = !item.enabled;
+  pushProcessItems([..._processItemsCache]);
+}
+
+function deleteProcessItem(id) {
+  if (!confirm('この項目を削除しますか？')) return;
+  pushProcessItems(_processItemsCache.filter(i => i.id !== id));
+}
+
+function onProcessDragStart(e, idx) {
+  _processDragIdx = idx;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function onProcessDragOver(e, idx) {
+  e.preventDefault();
+  document.querySelectorAll('.process-item-row').forEach(el => el.classList.remove('drag-over'));
+  e.currentTarget.classList.add('drag-over');
+}
+function onProcessDrop(e, idx) {
+  e.preventDefault();
+  if (_processDragIdx === null || _processDragIdx === idx) return;
+  const items = [..._processItemsCache];
+  const moved = items.splice(_processDragIdx, 1)[0];
+  items.splice(idx, 0, moved);
+  _processDragIdx = null;
+  pushProcessItems(items);
+}
+
+// ── プロセス採点（入力タブ） ──
+let _processScoreState = {}; // { itemId: score }
+let _processScoreSaveTimer = {};
+
+function renderProcessScoring() {
+  const container = document.getElementById('process-score-list');
+  if (!container) return;
+  const enabled = _processItemsCache.filter(i => i.enabled);
+
+  if (!enabled.length) {
+    container.innerHTML = '<div class="process-score-empty">設定タブから採点項目を有効にすると、ここで評価できます。</div>';
+    return;
+  }
+
+  container.innerHTML = enabled.map(item => {
+    const score = _processScoreState[item.id] !== undefined ? _processScoreState[item.id] : 5;
+    return `
+      <div class="process-score-item" data-item-id="${item.id}">
+        <div class="process-score-label">${escHtmlHabit(item.label) || '(無題の項目)'}</div>
+        <div class="slider-wrap">
+          <span style="font-size:13px;color:var(--text-muted);">1</span>
+          <input type="range" min="1" max="10" value="${score}" class="process-score-slider"
+            oninput="onProcessScoreInput('${item.id}', this.value)"
+            onchange="onProcessScoreChange('${item.id}', this.value)" />
+          <span style="font-size:13px;color:var(--text-muted);">10</span>
+          <span class="slider-val" id="process-score-val-${item.id}">${score}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function onProcessScoreInput(itemId, value) {
+  const el = document.getElementById('process-score-val-' + itemId);
+  if (el) el.textContent = value;
+}
+
+function onProcessScoreChange(itemId, value) {
+  _processScoreState[itemId] = parseInt(value);
+  const dateVal = document.getElementById('date').value;
+  if (dateVal && getGasUrl()) {
+    gasPost({ action: 'saveProcessScore', date: dateVal, itemId, score: parseInt(value) });
+  }
+}
+
+async function loadProcessScoresForDate(date) {
+  _processScoreState = {};
+  renderProcessScoring();
+  if (!getGasUrl() || !date) return;
+  try {
+    const res  = await fetch(getGasUrl() + '?action=getProcessScores&dateFrom=' + date + '&dateTo=' + date);
+    const data = await res.json();
+    if (data.status === 'ok') {
+      (data.scores || []).forEach(s => { _processScoreState[s.itemId] = s.score; });
+      renderProcessScoring();
+    }
+  } catch(e) {}
 }
 
 // ── 習慣チェックイン（入力タブ） ──
@@ -4463,6 +4670,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   await fetchTicker();
   await fetchHabitRules();
   renderHabitCheckin();
+  await fetchProcessItems();
+  renderProcessScoring();
 
   if (!getGasUrl()) {
     updateGasStatus('demo');
@@ -4551,6 +4760,7 @@ async function deleteDRC() {
 async function loadDRCByDate(date) {
   if (!getGasUrl() || !date) return;
   loadHabitCheckinForDate(date);
+  loadProcessScoresForDate(date);
   showStatus('データを確認中...', 'loading');
   try {
     const res  = await fetch(getGasUrl() + '?action=getDRC&dateFrom=' + date + '&dateTo=' + date);
@@ -4762,7 +4972,7 @@ function switchTab(name, el) {
   if (name === 'yearly') loadYearlyData();
   if (name === 'tags') loadTagsTab();
   if (name === 'habits') loadHabitsTab();
-  if (name === 'settings') { renderSettingsPage(); renderLinksSettings(); renderTickerSettings(); renderHabitSettings(); renderGradeCriteriaUI(); updateThemeCardUI(); loadTimerSoundSettings(); }
+  if (name === 'settings') { renderSettingsPage(); renderLinksSettings(); renderTickerSettings(); renderHabitSettings(); renderProcessItemsSettings(); renderGradeCriteriaUI(); updateThemeCardUI(); loadTimerSoundSettings(); }
   if (name === 'connect') renderConnectPage();
 }
 
