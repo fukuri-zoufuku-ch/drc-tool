@@ -3925,7 +3925,14 @@ async function fetchProcessItems() {
   try {
     const res  = await fetch(getGasUrl() + '?action=getProcessItems');
     const data = await res.json();
-    if (data.status === 'ok') _processItemsCache = data.items || [];
+    if (data.status === 'ok') {
+      const seen = new Set();
+      _processItemsCache = (data.items || []).filter(item => {
+        if (seen.has(item.id)) return false;
+        seen.add(item.id);
+        return true;
+      });
+    }
   } catch(e) { console.warn('プロセス項目取得失敗:', e); }
 }
 

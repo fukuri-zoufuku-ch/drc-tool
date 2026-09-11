@@ -708,11 +708,21 @@ function getProcessItems() {
   var rows  = sheet.getDataRange().getValues();
 
   if (rows.length <= 1) {
-    var defaults = DEFAULT_PROCESS_ITEMS.map(function(label, i) {
-      return { id: 'proc_' + i, label: label, enabled: true, order: i };
-    });
-    writeProcessItems(sheet, defaults);
-    return { status: 'ok', items: defaults };
+    // 同時アクセスによる二重書き込みを防ぐためロックを取得
+    var lock = LockService.getScriptLock();
+    lock.waitLock(10000);
+    try {
+      rows = sheet.getDataRange().getValues();
+      if (rows.length <= 1) {
+        var defaults = DEFAULT_PROCESS_ITEMS.map(function(label, i) {
+          return { id: 'proc_' + i, label: label, enabled: true, order: i };
+        });
+        writeProcessItems(sheet, defaults);
+        return { status: 'ok', items: defaults };
+      }
+    } finally {
+      lock.releaseLock();
+    }
   }
 
   var items = rows.slice(1)
@@ -724,13 +734,37 @@ function getProcessItems() {
         order: Number(r[3]) || 0
       };
     });
-  items.sort(function(a,b){ return a.order - b.order; });
-  return { status: 'ok', items: items };
+
+  // 同一IDの重複を除去（先勝ち）
+  var seen = {};
+  var deduped = [];
+  items.forEach(function(item) {
+    if (!seen[item.id]) {
+      seen[item.id] = true;
+      deduped.push(item);
+    }
+  });
+  deduped.sort(function(a,b){ return a.order - b.order; });
+
+  // 重複があった場合はシートをクリーンな状態に書き戻す
+  if (deduped.length !== items.length) {
+    writeProcessItems(sheet, deduped);
+  }
+
+  return { status: 'ok', items: deduped };
 }
 
 function saveProcessItems(items) {
   var sheet = getOrCreateSheet(SHEET_PROCESS_ITEMS);
-  writeProcessItems(sheet, items || []);
+  var seen = {};
+  var deduped = [];
+  (items || []).forEach(function(item) {
+    if (!seen[item.id]) {
+      seen[item.id] = true;
+      deduped.push(item);
+    }
+  });
+  writeProcessItems(sheet, deduped);
   return { status: 'ok' };
 }
 
