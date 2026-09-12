@@ -4543,7 +4543,9 @@ function applyTheme(theme) {
 }
 
 function applyFontSize(size) {
-  document.body.style.fontSize = size + 'px';
+  // CSS内のfont-sizeが個別px指定のため、body.style.fontSizeでは効かない。
+  // ページ全体をzoomで拡大縮小することで確実に反映させる
+  document.documentElement.style.zoom = (parseInt(size) / 16);
   localStorage.setItem('drc_font_size', size);
   const val = document.getElementById('font-size-val');
   if (val) val.textContent = size + 'px';
