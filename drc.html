@@ -1936,25 +1936,27 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    cursor: grab;
     transition: border-color 0.15s;
   }
-  .link-setting-item:active { cursor: grabbing; }
-  .link-setting-item.dragging {
-    opacity: 0.4;
-    border-color: var(--accent);
-  }
-  .link-setting-item.drag-over {
-    border-color: var(--accent);
-    background: var(--accent-dim);
-  }
-  .link-drag-handle {
-    color: var(--text-muted);
-    font-size: 18px;
-    cursor: grab;
+  .link-order-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
     flex-shrink: 0;
-    user-select: none;
   }
+  .link-order-btn {
+    width: 26px;
+    height: 20px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-sub);
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .link-order-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .link-order-btn:disabled { opacity: 0.3; cursor: not-allowed; }
   .link-setting-fields {
     flex: 1;
     display: grid;
@@ -3745,14 +3747,11 @@ function renderLinksSettings() {
   if (!list) return;
   if (addBtn) addBtn.style.display = links.length >= 50 ? 'none' : 'block';
   list.innerHTML = links.map((link, i) => `
-    <div class="link-setting-item" draggable="true"
-      ondragstart="onLinkDragStart(event,${i})"
-      ondragover="onLinkDragOver(event,${i})"
-      ondrop="onLinkDrop(event,${i})"
-      ondragleave="onLinkDragLeave(event)"
-      ondragend="onLinkDragEnd(event)"
-      data-idx="${i}">
-      <div class="link-drag-handle">⠿</div>
+    <div class="link-setting-item">
+      <div class="link-order-btns">
+        <button class="link-order-btn" onclick="moveLinkUp(${i})" ${i===0?'disabled':''} title="上へ">▲</button>
+        <button class="link-order-btn" onclick="moveLinkDown(${i})" ${i===links.length-1?'disabled':''} title="下へ">▼</button>
+      </div>
       <div class="link-setting-fields">
         <input type="text" placeholder="タイトル" value="${escHtml(link.title || '')}"
           oninput="updateLinkField(${i},'title',this.value)" />
@@ -3764,6 +3763,20 @@ function renderLinksSettings() {
       <button class="btn-link-del" onclick="deleteLink(${i})" title="削除">×</button>
     </div>
   `).join('');
+}
+
+function moveLinkUp(idx) {
+  if (idx <= 0) return;
+  const links = [..._linksCache];
+  [links[idx-1], links[idx]] = [links[idx], links[idx-1]];
+  pushLinks(links);
+}
+
+function moveLinkDown(idx) {
+  if (idx >= _linksCache.length - 1) return;
+  const links = [..._linksCache];
+  [links[idx], links[idx+1]] = [links[idx+1], links[idx]];
+  pushLinks(links);
 }
 
 function addLink() {
@@ -3790,35 +3803,7 @@ function deleteLink(idx) {
   pushLinks(links);
 }
 
-// ドラッグ&ドロップ
-let _dragIdx = null;
-function onLinkDragStart(e, idx) {
-  _dragIdx = idx;
-  e.currentTarget.classList.add('dragging');
-  e.dataTransfer.effectAllowed = 'move';
-}
-function onLinkDragOver(e, idx) {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
-  document.querySelectorAll('.link-setting-item').forEach(el => el.classList.remove('drag-over'));
-  e.currentTarget.classList.add('drag-over');
-}
-function onLinkDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
-function onLinkDrop(e, idx) {
-  e.preventDefault();
-  if (_dragIdx === null || _dragIdx === idx) return;
-  const links = [..._linksCache];
-  const moved = links.splice(_dragIdx, 1)[0];
-  links.splice(idx, 0, moved);
-  _dragIdx = null;
-  pushLinks(links);
-}
-function onLinkDragEnd(e) {
-  _dragIdx = null;
-  document.querySelectorAll('.link-setting-item').forEach(el => {
-    el.classList.remove('dragging', 'drag-over');
-  });
-}
+
 
 // ── 習慣ルール（HABIT_MASTER） ──
 let _habitRulesCache = [];
