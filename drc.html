@@ -3694,7 +3694,13 @@ async function fetchLinks() {
     const res  = await fetch(getGasUrl() + '?action=getLinks');
     const data = await res.json();
     if (data.status === 'ok') {
-      _linksCache = data.links || [];
+      const seen = new Set();
+      _linksCache = (data.links || []).filter(link => {
+        const key = link.title + '|' + link.url;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
       renderLinksPage();
       renderLinksSettings();
     }
