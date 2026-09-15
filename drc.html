@@ -3942,19 +3942,26 @@ async function pushProcessItems(items) {
 function renderProcessItemsSettings() {
   const list = document.getElementById('settings-process-items-list');
   if (!list) return;
+  const total = _processItemsCache.length;
   list.innerHTML = _processItemsCache.map((item, i) => `
-    <div class="process-item-row ${item.enabled ? '' : 'disabled'}" draggable="true"
-      ondragstart="onProcessDragStart(event,${i})"
-      ondragover="onProcessDragOver(event,${i})"
-      ondrop="onProcessDrop(event,${i})"
-      ondragleave="this.classList.remove('drag-over')"
-      ondragend="this.classList.remove('dragging','drag-over')">
-      <span class="tag-drag-handle">⠿</span>
+    <div class="process-item-row ${item.enabled ? '' : 'disabled'}">
+      <div class="link-order-btns">
+        <button class="link-order-btn" onclick="moveProcessItem(${i},-1)" ${i===0?'disabled':''} title="上へ">▲</button>
+        <button class="link-order-btn" onclick="moveProcessItem(${i},1)" ${i===total-1?'disabled':''} title="下へ">▼</button>
+      </div>
       <input type="text" value="${escHtmlHabit(item.label)}" onchange="updateProcessItemLabel('${item.id}', this.value)" />
       <button class="ticker-toggle-btn ${item.enabled ? 'on' : 'off'}" onclick="toggleProcessItem('${item.id}')" title="${item.enabled ? '採点対象' : '対象外'}"></button>
       <button class="btn-link-del" onclick="deleteProcessItem('${item.id}')" title="削除">×</button>
     </div>
   `).join('');
+}
+
+function moveProcessItem(idx, delta) {
+  const newIdx = idx + delta;
+  if (newIdx < 0 || newIdx >= _processItemsCache.length) return;
+  const items = [..._processItemsCache];
+  [items[idx], items[newIdx]] = [items[newIdx], items[idx]];
+  pushProcessItems(items);
 }
 
 function addProcessItem() {
@@ -3981,25 +3988,7 @@ function deleteProcessItem(id) {
   pushProcessItems(_processItemsCache.filter(i => i.id !== id));
 }
 
-function onProcessDragStart(e, idx) {
-  _processDragIdx = idx;
-  e.currentTarget.classList.add('dragging');
-  e.dataTransfer.effectAllowed = 'move';
-}
-function onProcessDragOver(e, idx) {
-  e.preventDefault();
-  document.querySelectorAll('.process-item-row').forEach(el => el.classList.remove('drag-over'));
-  e.currentTarget.classList.add('drag-over');
-}
-function onProcessDrop(e, idx) {
-  e.preventDefault();
-  if (_processDragIdx === null || _processDragIdx === idx) return;
-  const items = [..._processItemsCache];
-  const moved = items.splice(_processDragIdx, 1)[0];
-  items.splice(idx, 0, moved);
-  _processDragIdx = null;
-  pushProcessItems(items);
-}
+
 
 // ── プロセス採点（入力タブ） ──
 let _processScoreState = {}; // { itemId: score }
@@ -4276,18 +4265,15 @@ function renderTickerSettings() {
   if (!list) return;
   if (addBtn) addBtn.style.display = _tickerCache.length >= 20 ? 'none' : 'block';
 
+  const totalTicker = _tickerCache.length;
   list.innerHTML = _tickerCache.map((item, i) => {
     const enabled = item.enabled !== false;
     const text    = item.text || '';
-    return `<div class="ticker-setting-item ${enabled ? '' : 'disabled'}"
-      draggable="true"
-      ondragstart="onTickerDragStart(event,${i})"
-      ondragover="onTickerDragOver(event,${i})"
-      ondrop="onTickerDrop(event,${i})"
-      ondragleave="this.classList.remove('drag-over')"
-      ondragend="this.classList.remove('dragging','drag-over')"
-      data-idx="${i}">
-      <span class="ticker-drag-handle">⠿</span>
+    return `<div class="ticker-setting-item ${enabled ? '' : 'disabled'}">
+      <div class="link-order-btns">
+        <button class="link-order-btn" onclick="moveTickerItem(${i},-1)" ${i===0?'disabled':''} title="上へ">▲</button>
+        <button class="link-order-btn" onclick="moveTickerItem(${i},1)" ${i===totalTicker-1?'disabled':''} title="下へ">▼</button>
+      </div>
       <textarea id="ticker-text-${i}" onchange="updateTickerItem(${i}, this.value)">${escHtml(text)}</textarea>
       <button class="ticker-toggle-btn ${enabled ? 'on' : 'off'}" onclick="toggleTickerItem(${i})" title="${enabled ? '表示中' : '非表示'}"></button>
       <button class="btn-link-del" onclick="deleteTickerItem(${i})" title="削除">×</button>
@@ -4328,28 +4314,11 @@ function deleteTickerItem(idx) {
   renderTickerSettings();
 }
 
-// ドラッグ&ドロップ
-let _tickerDragIdx = null;
-function onTickerDragStart(e, idx) {
-  _tickerDragIdx = idx;
-  e.currentTarget.classList.add('dragging');
-  e.dataTransfer.effectAllowed = 'move';
-  e.stopPropagation();
-}
-function onTickerDragOver(e, idx) {
-  e.preventDefault();
-  e.stopPropagation();
-  document.querySelectorAll('.ticker-setting-item').forEach(el => el.classList.remove('drag-over'));
-  e.currentTarget.classList.add('drag-over');
-}
-function onTickerDrop(e, idx) {
-  e.preventDefault();
-  e.stopPropagation();
-  if (_tickerDragIdx === null || _tickerDragIdx === idx) return;
+function moveTickerItem(idx, delta) {
+  const newIdx = idx + delta;
+  if (newIdx < 0 || newIdx >= _tickerCache.length) return;
   const items = [..._tickerCache];
-  const moved = items.splice(_tickerDragIdx, 1)[0];
-  items.splice(idx, 0, moved);
-  _tickerDragIdx = null;
+  [items[idx], items[newIdx]] = [items[newIdx], items[idx]];
   pushTicker(items);
   renderTickerSettings();
 }
@@ -5247,33 +5216,29 @@ function renderSettingsPage() {
   const container = document.getElementById('settings-tag-categories');
   if (!container) return;
   container.innerHTML = '';
+  const totalCat = master.length;
   master.forEach((cat, ci) => {
     const div = document.createElement('div');
     div.className = 'settings-category';
-    div.setAttribute('draggable', 'true');
     div.dataset.ci = ci;
-    div.addEventListener('dragstart', e => onCatDragStart(e, ci));
-    div.addEventListener('dragover',  e => onCatDragOver(e, ci));
-    div.addEventListener('drop',      e => onCatDrop(e, ci));
-    div.addEventListener('dragleave', e => e.currentTarget.classList.remove('drag-over'));
-    div.addEventListener('dragend',   e => { e.currentTarget.classList.remove('dragging','drag-over'); });
     div.innerHTML = `
       <div class="settings-category-header">
         <div class="settings-category-name">
-          <span class="tag-drag-handle" title="ドラッグで並び替え">⠿</span>
+          <div class="link-order-btns" style="margin-right:6px;">
+            <button class="link-order-btn" onclick="moveCategory(${ci},-1)" ${ci===0?'disabled':''} title="上へ">▲</button>
+            <button class="link-order-btn" onclick="moveCategory(${ci},1)" ${ci===totalCat-1?'disabled':''} title="下へ">▼</button>
+          </div>
           <input type="text" value="${cat.name}" onchange="renameCat(${ci}, this.value)" />
         </div>
         <button class="btn-del-cat" onclick="deleteCategory(${ci})">カテゴリを削除</button>
       </div>
       <div class="settings-tags" id="settings-tags-${ci}">
         ${cat.tags.map((tag, ti) => `
-          <div class="settings-tag" draggable="true"
-            ondragstart="onTagDragStart(event,${ci},${ti})"
-            ondragover="onTagDragOver(event,${ci},${ti})"
-            ondrop="onTagDrop(event,${ci},${ti})"
-            ondragleave="this.classList.remove('drag-over')"
-            ondragend="this.classList.remove('dragging','drag-over')">
-            <span style="cursor:grab;color:var(--text-muted);margin-right:4px;font-size:12px;">⠿</span>
+          <div class="settings-tag">
+            <div class="link-order-btns" style="flex-direction:row;gap:0;margin-right:4px;">
+              <button class="link-order-btn" style="width:16px;height:16px;font-size:8px;border-radius:3px 0 0 3px;" onclick="moveTag(${ci},${ti},-1)" ${ti===0?'disabled':''} title="前へ">◀</button>
+              <button class="link-order-btn" style="width:16px;height:16px;font-size:8px;border-radius:0 3px 3px 0;" onclick="moveTag(${ci},${ti},1)" ${ti===cat.tags.length-1?'disabled':''} title="次へ">▶</button>
+            </div>
             <span>${tag}</span>
             <button class="settings-tag-del" onclick="deleteTag(${ci},${ti})" title="削除">×</button>
           </div>`).join('')}
@@ -5287,59 +5252,21 @@ function renderSettingsPage() {
   });
 }
 
-// カテゴリのドラッグ&ドロップ
-let _catDragIdx = null;
-function onCatDragStart(e, ci) {
-  _catDragIdx = ci;
-  e.currentTarget.classList.add('dragging');
-  e.dataTransfer.effectAllowed = 'move';
-}
-function onCatDragOver(e, ci) {
-  e.preventDefault();
-  document.querySelectorAll('.settings-category').forEach(el => el.classList.remove('drag-over'));
-  e.currentTarget.classList.add('drag-over');
-}
-function onCatDrop(e, ci) {
-  e.preventDefault();
-  if (_catDragIdx === null || _catDragIdx === ci) return;
+function moveCategory(ci, delta) {
   const master = getTagMaster();
-  const moved = master.splice(_catDragIdx, 1)[0];
-  master.splice(ci, 0, moved);
-  _catDragIdx = null;
+  const newIdx = ci + delta;
+  if (newIdx < 0 || newIdx >= master.length) return;
+  [master[ci], master[newIdx]] = [master[newIdx], master[ci]];
   pushTagMaster(master);
   renderSettingsPage();
 }
 
-// タグのドラッグ&ドロップ
-let _tagDrag = null;
-function onTagDragStart(e, ci, ti) {
-  _tagDrag = { ci, ti };
-  e.currentTarget.classList.add('dragging');
-  e.dataTransfer.effectAllowed = 'move';
-  e.stopPropagation();
-}
-function onTagDragOver(e, ci, ti) {
-  e.preventDefault();
-  e.stopPropagation();
-  document.querySelectorAll('.settings-tag').forEach(el => el.classList.remove('drag-over'));
-  e.currentTarget.classList.add('drag-over');
-}
-function onTagDrop(e, ci, ti) {
-  e.preventDefault();
-  e.stopPropagation();
-  if (!_tagDrag || (_tagDrag.ci === ci && _tagDrag.ti === ti)) return;
+function moveTag(ci, ti, delta) {
   const master = getTagMaster();
-  // 同カテゴリ内の並び替え
-  if (_tagDrag.ci === ci) {
-    const tags = master[ci].tags;
-    const moved = tags.splice(_tagDrag.ti, 1)[0];
-    tags.splice(ti, 0, moved);
-  } else {
-    // カテゴリをまたぐ移動
-    const tag = master[_tagDrag.ci].tags.splice(_tagDrag.ti, 1)[0];
-    master[ci].tags.splice(ti, 0, tag);
-  }
-  _tagDrag = null;
+  const tags = master[ci].tags;
+  const newIdx = ti + delta;
+  if (newIdx < 0 || newIdx >= tags.length) return;
+  [tags[ti], tags[newIdx]] = [tags[newIdx], tags[ti]];
   pushTagMaster(master);
   renderSettingsPage();
 }
