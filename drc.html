@@ -3465,6 +3465,9 @@
     <div style="font-size:14px;color:var(--text-sub);margin-bottom:20px;">入力タブに表示する採点項目です。ドラッグで並び替え、スイッチで採点対象のON/OFFができます</div>
     <div id="settings-process-items-list"></div>
     <button class="btn-add-link" onclick="addProcessItem()">＋ 項目を追加</button>
+    <div style="display:flex;justify-content:flex-end;margin-top:10px;">
+      <button class="btn-connect" style="font-size:13px;" onclick="resetProcessItemsToDefault()">デフォルト9項目に戻す</button>
+    </div>
   </div>
 
   <div style="margin-top:40px;">
@@ -3996,6 +3999,20 @@ function moveProcessItem(idx, delta) {
 function addProcessItem() {
   const newItem = { id: 'proc_' + Date.now(), label: '', enabled: true, order: _processItemsCache.length };
   pushProcessItems([..._processItemsCache, newItem]);
+}
+
+const DEFAULT_PROCESS_LABELS = [
+  '自分のルールを守れたか','セットアップの質','エントリーの質','エグジットの質',
+  'リスク管理の遵守','感情管理','サイズ管理','ギブバックの有無','判断の一貫性'
+];
+
+function resetProcessItemsToDefault() {
+  if (!confirm('プロセス採点項目をデフォルト9項目に戻しますか？\n現在の項目設定は上書きされます（過去の採点記録は残ります）')) return;
+  const defaults = DEFAULT_PROCESS_LABELS.map((label, i) => ({
+    id: 'proc_' + i, label, enabled: true, order: i
+  }));
+  _processItemsLoaded = true;
+  pushProcessItems(defaults);
 }
 
 function updateProcessItemLabel(id, value) {

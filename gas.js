@@ -725,13 +725,29 @@ function getProcessItems() {
   var sheet = getOrCreateSheet(SHEET_PROCESS_ITEMS);
   var rows  = sheet.getDataRange().getValues();
 
-  if (rows.length <= 1) {
+  // 実質的に空かどうかを判定（ヘッダーのみ、またはラベルが全て空）
+  var hasValidData = false;
+  for (var i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]).trim() !== '' && String(rows[i][1]).trim() !== '') {
+      hasValidData = true;
+      break;
+    }
+  }
+
+  if (!hasValidData) {
     // 同時アクセスによる二重書き込みを防ぐためロックを取得
     var lock = LockService.getScriptLock();
     lock.waitLock(10000);
     try {
       rows = sheet.getDataRange().getValues();
-      if (rows.length <= 1) {
+      var stillEmpty = true;
+      for (var j = 1; j < rows.length; j++) {
+        if (String(rows[j][0]).trim() !== '' && String(rows[j][1]).trim() !== '') {
+          stillEmpty = false;
+          break;
+        }
+      }
+      if (stillEmpty) {
         var defaults = DEFAULT_PROCESS_ITEMS.map(function(label, i) {
           return { id: 'proc_' + i, label: label, enabled: true, order: i };
         });
