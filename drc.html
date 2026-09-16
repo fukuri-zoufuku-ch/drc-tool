@@ -4692,6 +4692,7 @@ const DEFAULT_TAG_MASTER = [
 
 // インメモリキャッシュ
 let tagMasterCache = null;
+let _tagMasterLoaded = false;
 
 function getTagMaster() {
   return tagMasterCache || JSON.parse(JSON.stringify(DEFAULT_TAG_MASTER));
@@ -4701,6 +4702,7 @@ function getTagMaster() {
 async function fetchTagMaster() {
   if (!getGasUrl()) {
     tagMasterCache = JSON.parse(JSON.stringify(DEFAULT_TAG_MASTER));
+    _tagMasterLoaded = true; // GAS未接続時はデモ動作のため許可
     return;
   }
   try {
@@ -4708,17 +4710,26 @@ async function fetchTagMaster() {
     const data = await res.json();
     if (data.status === 'ok') {
       tagMasterCache = data.master;
+      _tagMasterLoaded = true;
     } else {
       tagMasterCache = JSON.parse(JSON.stringify(DEFAULT_TAG_MASTER));
+      // 取得失敗時はLoadedにしない（保存を防ぐ）
     }
   } catch(e) {
     tagMasterCache = JSON.parse(JSON.stringify(DEFAULT_TAG_MASTER));
     console.warn('タグマスター取得失敗:', e);
+    // 取得失敗時はLoadedにしない（保存を防ぐ）
   }
 }
 
 // GASにタグマスターを保存（都度）
 async function pushTagMaster(master) {
+  // 安全装置：読み込み未完了の状態では保存しない（全消し防止）
+  if (!_tagMasterLoaded) {
+    console.warn('タグマスターの読み込みが完了していないため保存を中止しました');
+    alert('データ読み込み中です。少し待ってから再度操作してください。');
+    return;
+  }
   tagMasterCache = master;
   rebuildAllTradeTagUI();
   if (!getGasUrl()) return;

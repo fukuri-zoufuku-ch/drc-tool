@@ -145,6 +145,18 @@ function getTagMaster() {
  */
 function saveTagMaster(master) {
   const sheet = getOrCreateSheet(SHEET_TAG);
+
+  // 安全装置：既存データがあるのに空配列で上書きしようとした場合は拒否
+  const hasAnyTag = (master || []).some(cat => (cat.tags || []).length > 0);
+  if (!hasAnyTag) {
+    const rows = sheet.getDataRange().getValues();
+    const hasExisting = rows.length > 1 && rows.slice(1).some(r => String(r[2] || '').trim() !== '');
+    if (hasExisting) {
+      Logger.log('saveTagMaster: 空データでの上書きを拒否しました');
+      return { status: 'error', message: '空データでの上書きは拒否されました' };
+    }
+  }
+
   writeTagMaster(sheet, master);
   return { status: 'ok' };
 }
