@@ -3690,6 +3690,8 @@
 // ── リンク集（GAS連携） ──
 let _linksCache = [];
 
+let _linksLoaded = false;
+
 async function fetchLinks() {
   if (!getGasUrl()) return;
   try {
@@ -3703,6 +3705,7 @@ async function fetchLinks() {
         seen.add(key);
         return true;
       });
+      _linksLoaded = true;
       renderLinksPage();
       renderLinksSettings();
     }
@@ -3710,6 +3713,12 @@ async function fetchLinks() {
 }
 
 async function pushLinks(links) {
+  // 安全装置：読み込み未完了の状態では保存しない（全消し防止）
+  if (!_linksLoaded) {
+    console.warn('リンクデータの読み込みが完了していないため保存を中止しました');
+    alert('データ読み込み中です。少し待ってから再度操作してください。');
+    return;
+  }
   _linksCache = links;
   renderLinksPage();
   renderLinksSettings();
@@ -3813,16 +3822,27 @@ function escHtmlHabit(str) {
   return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+let _habitRulesLoaded = false;
+
 async function fetchHabitRules() {
   if (!getGasUrl()) { _habitRulesCache = []; return; }
   try {
     const res  = await fetch(getGasUrl() + '?action=getHabitMaster');
     const data = await res.json();
-    if (data.status === 'ok') _habitRulesCache = data.rules || [];
+    if (data.status === 'ok') {
+      _habitRulesCache = data.rules || [];
+      _habitRulesLoaded = true;
+    }
   } catch(e) { console.warn('習慣ルール取得失敗:', e); }
 }
 
 async function pushHabitRules(rules) {
+  // 安全装置：読み込み未完了の状態では保存しない（全消し防止）
+  if (!_habitRulesLoaded) {
+    console.warn('習慣ルールの読み込みが完了していないため保存を中止しました');
+    alert('データ読み込み中です。少し待ってから再度操作してください。');
+    return;
+  }
   _habitRulesCache = rules;
   renderHabitSettings();
   if (!getGasUrl()) return;
@@ -3913,6 +3933,8 @@ function restoreHabitRule(id) {
 let _processItemsCache = [];
 let _processDragIdx = null;
 
+let _processItemsLoaded = false;
+
 async function fetchProcessItems() {
   if (!getGasUrl()) { _processItemsCache = []; return; }
   try {
@@ -3925,11 +3947,18 @@ async function fetchProcessItems() {
         seen.add(item.id);
         return true;
       });
+      _processItemsLoaded = true;
     }
   } catch(e) { console.warn('プロセス項目取得失敗:', e); }
 }
 
 async function pushProcessItems(items) {
+  // 安全装置：読み込み未完了の状態では保存しない（全消し防止）
+  if (!_processItemsLoaded) {
+    console.warn('プロセス項目の読み込みが完了していないため保存を中止しました');
+    alert('データ読み込み中です。少し待ってから再度操作してください。');
+    return;
+  }
   _processItemsCache = items;
   renderProcessItemsSettings();
   renderProcessScoring();
@@ -4206,6 +4235,8 @@ function applyTickerSpeed(val, save=true) {
   if (slider) slider.value = val;
 }
 
+let _tickerLoaded = false;
+
 async function fetchTicker() {
   if (!getGasUrl()) {
     renderTicker([]);
@@ -4219,12 +4250,19 @@ async function fetchTicker() {
       _tickerCache = (data.items || []).map(item =>
         typeof item === 'string' ? { text: item, enabled: true } : item
       );
+      _tickerLoaded = true;
       renderTicker(_tickerCache);
     }
   } catch(e) { renderTicker([]); }
 }
 
 async function pushTicker(items) {
+  // 安全装置：読み込み未完了の状態では保存しない（全消し防止）
+  if (!_tickerLoaded) {
+    console.warn('ティッカーの読み込みが完了していないため保存を中止しました');
+    alert('データ読み込み中です。少し待ってから再度操作してください。');
+    return;
+  }
   _tickerCache = items;
   renderTicker(items);
   if (!getGasUrl()) return;

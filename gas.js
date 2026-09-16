@@ -562,6 +562,17 @@ function getTicker() {
 
 function saveTicker(items) {
   var sheet = getOrCreateSheet(SHEET_TICKER);
+
+  // 安全装置：既存データがあるのに空配列で上書きしようとした場合は拒否
+  var validItems = (items || []).filter(function(item) {
+    var text = typeof item === 'string' ? item : (item.text || '');
+    return text.trim() !== '';
+  });
+  if (validItems.length === 0 && sheet.getLastRow() > 1) {
+    Logger.log('saveTicker: 空データでの上書きを拒否しました');
+    return { status: 'error', message: '空データでの上書きは拒否されました' };
+  }
+
   sheet.clearContents();
   sheet.appendRow(['message','enabled']);
   var headerRange = sheet.getRange(1,1,1,2);
@@ -605,6 +616,13 @@ function getHabitMaster() {
  */
 function saveHabitMaster(rules) {
   var sheet = getOrCreateSheet(SHEET_HABIT_MASTER);
+
+  // 安全装置：既存データがあるのに空配列で上書きしようとした場合は拒否
+  if ((!rules || rules.length === 0) && sheet.getLastRow() > 1) {
+    Logger.log('saveHabitMaster: 空データでの上書きを拒否しました');
+    return { status: 'error', message: '空データでの上書きは拒否されました' };
+  }
+
   sheet.clearContents();
   sheet.appendRow(['id','theme','content','status','created_at']);
   var headerRange = sheet.getRange(1,1,1,5);
@@ -764,6 +782,13 @@ function saveProcessItems(items) {
       deduped.push(item);
     }
   });
+
+  // 安全装置：既存データがあるのに空配列で上書きしようとした場合は拒否
+  if (deduped.length === 0 && sheet.getLastRow() > 1) {
+    Logger.log('saveProcessItems: 空データでの上書きを拒否しました');
+    return { status: 'error', message: '空データでの上書きは拒否されました' };
+  }
+
   writeProcessItems(sheet, deduped);
   return { status: 'ok' };
 }
@@ -899,6 +924,16 @@ function saveLinks(links) {
       deduped.push(link);
     }
   });
+
+  // 安全装置：既存データがあるのに空配列で上書きしようとした場合は拒否
+  if (deduped.length === 0) {
+    var sheet = getOrCreateSheet(SHEET_LINKS);
+    if (sheet.getLastRow() > 1) {
+      Logger.log('saveLinks: 空データでの上書きを拒否しました');
+      return { status: 'error', message: '空データでの上書きは拒否されました' };
+    }
+  }
+
   writeLinksLocked(deduped);
   return { status: 'ok' };
 }
