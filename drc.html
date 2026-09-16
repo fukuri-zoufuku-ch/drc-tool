@@ -3854,7 +3854,14 @@ async function pushHabitRules(rules) {
   } catch(e) { console.warn('習慣ルール保存失敗:', e); }
 }
 
+let _habitLogCounts = {}; // { ruleId: count }
+
 function renderHabitSettings() {
+  renderHabitSettingsInner();
+  fetchHabitLogCounts();
+}
+
+function renderHabitSettingsInner() {
   const activeList   = document.getElementById('settings-habit-active-list');
   const archivedWrap = document.getElementById('settings-habit-archived-wrap');
   const archivedList = document.getElementById('settings-habit-archived-list');
@@ -3866,6 +3873,18 @@ function renderHabitSettings() {
 
   if (addBtn) addBtn.style.display = _habitRulesCache.length >= 10 ? 'none' : 'block';
 
+  const renderRuleActions = (rule, isArchived) => {
+    const count = _habitLogCounts[rule.id];
+    const hasNoRecords = count === 0;
+    const archiveBtn = isArchived
+      ? `<button class="btn-habit-restore" onclick="restoreHabitRule('${rule.id}')">再有効化する</button>`
+      : `<button class="btn-habit-archive" onclick="archiveHabitRule('${rule.id}')">アーカイブする</button>`;
+    const deleteBtn = hasNoRecords
+      ? `<button class="btn-habit-archive" style="color:var(--red);border-color:var(--red);" onclick="deleteHabitRule('${rule.id}')">完全に削除</button>`
+      : '';
+    return archiveBtn + deleteBtn;
+  };
+
   activeList.innerHTML = active.map(rule => `
     <div class="habit-rule-item">
       <div class="habit-rule-top">
@@ -3874,9 +3893,7 @@ function renderHabitSettings() {
       </div>
       <textarea class="habit-rule-content" rows="2" placeholder="具体的に順守する内容"
         onchange="updateHabitRule('${rule.id}','content',this.value)">${escHtmlHabit(rule.content)}</textarea>
-      <div class="habit-rule-actions">
-        <button class="btn-habit-archive" onclick="archiveHabitRule('${rule.id}')">アーカイブする</button>
-      </div>
+      <div class="habit-rule-actions">${renderRuleActions(rule, false)}</div>
     </div>
   `).join('');
 
@@ -3888,12 +3905,29 @@ function renderHabitSettings() {
           <div style="flex:1;font-size:14px;color:var(--text-sub);">${escHtmlHabit(rule.theme)}</div>
         </div>
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">${escHtmlHabit(rule.content)}</div>
-        <div class="habit-rule-actions">
-          <button class="btn-habit-restore" onclick="restoreHabitRule('${rule.id}')">再有効化する</button>
-        </div>
+        <div class="habit-rule-actions">${renderRuleActions(rule, true)}</div>
       </div>
     `).join('');
   }
+}
+
+async function fetchHabitLogCounts() {
+  if (!getGasUrl()) return;
+  let hasNewData = false;
+  for (const rule of _habitRulesCache) {
+    if (_habitLogCounts[rule.id] !== undefined) continue; // キャッシュ済みはスキップ
+    try {
+      const res  = await fetch(getGasUrl() + '?action=getHabitLogs&ruleId=' + encodeURIComponent(rule.id));
+      const data = await res.json();
+      _habitLogCounts[rule.id] = data.status === 'ok' ? (data.logs || []).length : -1;
+      hasNewData = true;
+    } catch(e) {
+      _habitLogCounts[rule.id] = -1; // 取得失敗時は安全側に倒し削除不可扱い
+      hasNewData = true;
+    }
+  }
+  // アクティブ入力中のフィールドを壊さないよう、削除ボタンの有無だけ確認後に再描画
+  if (hasNewData) renderHabitSettingsInner();
 }
 
 function addHabitRule() {
@@ -3930,6 +3964,17 @@ function restoreHabitRule(id) {
   if (!rule) return;
   rule.status = 'active';
   pushHabitRules([..._habitRulesCache]);
+}
+
+async function deleteHabitRule(id) {
+  const count = _habitLogCounts[id];
+  if (count !== 0) {
+    alert('このルールには記録があるため削除できません。アーカイブをご利用ください。');
+    return;
+  }
+  if (!confirm('このルールを完全に削除しますか？この操作は取り消せません。')) return;
+  delete _habitLogCounts[id];
+  pushHabitRules(_habitRulesCache.filter(r => r.id !== id));
 }
 
 // ── プロセス採点項目（PROCESS_ITEMS） ──
